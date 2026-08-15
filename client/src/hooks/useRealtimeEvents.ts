@@ -15,7 +15,9 @@ export function useRealtimeEvents() {
       if (!isMounted) return;
 
       try {
-        const es = new EventSource('/api/events');
+        const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) || '/api';
+        const eventsUrl = apiUrl.startsWith('http') ? `${apiUrl}/events` : '/api/events';
+        const es = new EventSource(eventsUrl, { withCredentials: true });
         eventSourceRef.current = es;
 
         es.addEventListener('ORDER_CREATED', (e) => {

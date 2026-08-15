@@ -10,6 +10,7 @@ router.post('/register', validate(registerSchema), authController.register);
 router.post('/login', validate(loginSchema), authController.login);
 router.post('/logout', authenticate, authController.logout);
 router.post('/refresh', validate(refreshTokenSchema), authController.refreshToken);
+router.post('/refresh-token', validate(refreshTokenSchema), authController.refreshToken);
 router.get('/me', authenticate, authController.getMe);
 router.post('/change-password', authenticate, validate(changePasswordSchema), authController.changePassword);
 router.put('/profile', authenticate, validate(updateProfileSchema), authController.updateProfile);
