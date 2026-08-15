@@ -21,23 +21,56 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  private getStoredToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('accessToken');
+  }
+
+  private setStoredTokens(accessToken?: string, refreshToken?: string) {
+    if (typeof window === 'undefined') return;
+    if (accessToken) localStorage.setItem('accessToken', accessToken);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+  }
+
+  private clearStoredTokens() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
+    const token = this.getStoredToken();
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers as Record<string, string>),
+    };
+
     const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      credentials: 'include',
       ...options,
+      headers,
+      credentials: 'include',
     };
 
     try {
       const response = await fetch(url, config);
       const data = await response.json();
+
+      // Automatically capture tokens from login/register/refresh responses
+      if (response.ok && data?.data?.tokens) {
+        this.setStoredTokens(data.data.tokens.accessToken, data.data.tokens.refreshToken);
+      } else if (response.ok && data?.data?.token) {
+        this.setStoredTokens(data.data.token);
+      }
+
+      if (endpoint.includes('/auth/logout')) {
+        this.clearStoredTokens();
+      }
 
       if (!response.ok) {
         // Transparent token refresh on 401 Unauthorized (unless already refreshing, checking session, or logging in)
@@ -50,23 +83,37 @@ class ApiClient {
           !endpoint.includes('/auth/register')
         ) {
           try {
+            const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
             const refreshRes = await fetch(`${this.baseUrl}/auth/refresh-token`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
+              body: JSON.stringify({ refreshToken: refreshToken || '' }),
             });
 
             if (refreshRes.ok) {
-              // Retry original request with freshly set cookies
-              const retryResponse = await fetch(url, config);
+              const refreshData = await refreshRes.json();
+              if (refreshData?.data?.tokens?.accessToken) {
+                this.setStoredTokens(
+                  refreshData.data.tokens.accessToken,
+                  refreshData.data.tokens.refreshToken
+                );
+                // Retry with new token header
+                headers.Authorization = `Bearer ${refreshData.data.tokens.accessToken}`;
+              }
+
+              const retryResponse = await fetch(url, { ...config, headers });
               const retryData = await retryResponse.json();
 
               if (!retryResponse.ok) {
                 throw { status: retryResponse.status, ...retryData };
               }
               return retryData;
+            } else {
+              this.clearStoredTokens();
             }
           } catch (refreshErr: any) {
+            this.clearStoredTokens();
             if (refreshErr?.status) throw refreshErr;
           }
         }
