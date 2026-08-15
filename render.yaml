@@ -11,7 +11,7 @@ services:
     runtime: node
     plan: free
     rootDir: server
-    buildCommand: npm install && npm run build && npx prisma db push && npm run db:seed
+    buildCommand: npm install --include=dev && npm run build && npx prisma db push && npm run db:seed
     startCommand: npm start
     envVars:
       - key: NODE_ENV
