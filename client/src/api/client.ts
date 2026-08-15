@@ -40,9 +40,11 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        // Transparent token refresh on 401 Unauthorized (unless already refreshing or logging in)
+        // Transparent token refresh on 401 Unauthorized (unless already refreshing, checking session, or logging in)
         if (
           response.status === 401 &&
+          !endpoint.includes('/auth/me') &&
+          !endpoint.includes('/auth/refresh') &&
           !endpoint.includes('/auth/refresh-token') &&
           !endpoint.includes('/auth/login') &&
           !endpoint.includes('/auth/register')
