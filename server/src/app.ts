@@ -27,8 +27,8 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 app.use(cors({
-  origin: config.cors.origin,
-  credentials: config.cors.credentials,
+  origin: true,
+  credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -41,6 +41,16 @@ const limiter = rateLimit({
   skip: () => config.nodeEnv !== 'production',
 });
 app.use('/api/', limiter);
+
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'online',
+    message: 'The Coffee Bean Cafe API is running live ☕',
+    version: '1.0.0',
+    health: '/api/health',
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'Server is healthy', timestamp: new Date().toISOString() });
