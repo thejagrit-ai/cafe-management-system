@@ -5,10 +5,10 @@ databases:
     plan: free
 
 services:
-  # Backend Web Service (Node / Express / Prisma)
+  # Backend API Web Service (Node / Express / Prisma)
   - type: web
     name: cafe-server
-    env: node
+    runtime: node
     plan: free
     rootDir: server
     buildCommand: npm install && npm run build && npx prisma db push && npm run db:seed
@@ -17,7 +17,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3001
+        value: 10000
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
@@ -27,9 +27,10 @@ services:
       - key: CLIENT_URL
         value: https://cafe-client.onrender.com
 
-  # Frontend Static Site (React / Vite)
-  - type: static
+  # Frontend Static Website (React / Vite)
+  - type: web
     name: cafe-client
+    runtime: static
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: dist
