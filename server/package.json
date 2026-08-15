@@ -2,11 +2,11 @@
   "name": "server",
   "version": "1.0.0",
   "description": "Cafe Management System - Backend API",
-  "main": "dist/src/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "prisma generate && tsc",
-    "start": "node dist/src/index.js",
+    "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
