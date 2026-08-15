@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"c:/Users/mssi/OneDrive/Desktop/cafe management system/client/src\" && sed -i \"s/LOW_STOCK/LIMITED/g\" pages/admin/AdminProducts.tsx && sed -n '115,125p' pages/admin/AdminIngredients.tsx && echo \"--- ingredient status context ---\" && grep -n \"status\" pages/admin/AdminIngredients.tsx | head)",
+      "Bash(sed -i \"s/^import { Request, Response, NextFunction } from 'express';$/import { Response, NextFunction } from 'express';/\" controllers/customer.ts controllers/dashboard.ts controllers/report.ts)",
+      "Bash(sed -i \"s/^import { BaseRepository, PaginationOptions, PaginatedResult } from '.\\\\/base';$/import { BaseRepository } from '.\\\\/base';/\" repositories/address.ts repositories/employee.ts repositories/recipe.ts repositories/supplier.ts)",
+      "Bash(sed -i \"/^import prisma from '..\\\\/config\\\\/prisma';$/d\" repositories/base.ts)",
+      "Bash(sed -i \"s/^import { AppError, ValidationError } from '..\\\\/utils\\\\/errors';$/import { AppError } from '..\\\\/utils\\\\/errors';/\" middleware/errorHandler.ts)",
+      "Bash(sed -i \"s/^import { Order, OrderStatus, OrderType, Prisma } from '@prisma\\\\/client';$/import { Order, OrderStatus, Prisma } from '@prisma\\\\/client';/\" repositories/order.ts)",
+      "Bash(sed -i \"s/^import { authenticate, authorize } from '..\\\\/middleware\\\\/auth';$/import { authenticate } from '..\\\\/middleware\\\\/auth';/\" routes/auth.ts)",
+      "Bash(sed -i \"/^import { paymentRepository } from '..\\\\/repositories\\\\/payment';$/d\" services/dashboard.ts)",
+      "Bash(sed -i \"/^import { orderRepository } from '..\\\\/repositories\\\\/order';$/d; /^import { productRepository } from '..\\\\/repositories\\\\/product';$/d; /^import { inventoryTransactionRepository } from '..\\\\/repositories\\\\/inventoryTransaction';$/d; /^import { Prisma } from '@prisma\\\\/client';$/d\" services/report.ts)",
+      "Bash(sed -i \"2s|.*|import type { Order, Payment, PaginationParams } from '../types';|\" api/orders.ts)",
+      "Bash(sed -i \"2s|.*|import type { Product, PaginationParams } from '../types';|\" api/products.ts)",
+      "Bash(sed -i \"7s|.*|import { formatDate, getStatusColor, getOrderTypeLabel } from '@/utils/lib'|\" pages/staff/StaffDashboard.tsx)",
+      "Bash(sed -i \"15s|.*|import { formatDate } from '@/utils/lib'|\" pages/admin/AdminEmployees.tsx)",
+      "Bash(sed -i \"59s|.*|  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ProductFormData>\\({|\" pages/admin/AdminProducts.tsx)",
+      "Bash(sed -i \"38s|.*|  const { register, handleSubmit, formState: { errors, isDirty } } = useForm<SettingsFormData>\\({|\" pages/admin/AdminSettings.tsx)",
+      "Bash(sed -i \"67s|reset: resetEdit, ||\" pages/admin/AdminEmployees.tsx)",
+      "Bash(sed -i \"5s|.*|import { settingsApi } from '@/api/settings'|\" pages/admin/AdminSettings.tsx)",
+      "Bash(sed -i \"20d\" pages/customer/CheckoutPage.tsx)",
+      "Bash(sed -i \"s|^import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'$|import { useQuery, useMutation } from '@tanstack/react-query'|\" pages/customer/CheckoutPage.tsx)",
+      "Bash(npx prisma *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\mssi\\OneDrive\\Desktop\\cafe management system\\client\\src\\pages\\admin"
+    ]
+  }
+}

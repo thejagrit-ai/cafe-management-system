@@ -1,0 +1,384 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 98%; /* #FAF8F5 Warm off-white */
+    --foreground: 255 17% 8%; /* #121118 Deep obsidian */
+    --card: 0 0% 100%;
+    --card-foreground: 255 17% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 255 17% 8%;
+    --primary: 257 82% 62%; /* #7C4EEE Electric Violet */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 35 25% 94%; /* #F4EFEA Soft cream */
+    --secondary-foreground: 255 17% 12%;
+    --muted: 35 15% 92%;
+    --muted-foreground: 255 10% 45%;
+    --accent: 257 60% 96%;
+    --accent-foreground: 257 82% 50%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 35 15% 88%;
+    --input: 35 15% 88%;
+    --ring: 257 82% 62%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 255 17% 8%; /* #121118 */
+    --foreground: 40 25% 96%;
+    --card: 255 18% 12%; /* #1A1824 */
+    --card-foreground: 40 25% 96%;
+    --popover: 255 18% 12%;
+    --popover-foreground: 40 25% 96%;
+    --primary: 257 82% 62%; /* #7C4EEE */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 255 15% 16%;
+    --secondary-foreground: 40 25% 96%;
+    --muted: 255 15% 18%;
+    --muted-foreground: 255 10% 65%;
+    --accent: 257 50% 20%;
+    --accent-foreground: 257 82% 75%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 255 15% 20%;
+    --input: 255 15% 20%;
+    --ring: 257 82% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    overflow-x: hidden;
+    touch-action: manipulation;
+  }
+  h1, h2, h3, .font-editorial {
+    letter-spacing: -0.02em;
+  }
+}
+
+/*
+ * Coffee-shop theme, ported from the CoffeeShop-NextJS-Webpage design (MIT).
+ *
+ * Scoped to a wrapper class rather than applied to :root on purpose: the
+ * customer-facing pages opt in, while the admin and staff consoles keep the
+ * existing palette and stay visually unchanged.
+ *
+ * These rules MUST stay inside `@layer base`. Unlayered CSS wins over every
+ * `@layer` regardless of specificity, so declaring the heading colour outside a
+ * layer beat Tailwind's `text-white` (which lives in `@layer utilities`) and
+ * painted every heading on the dark sections near-black on near-black.
+ */
+@layer base {
+  .theme-cafe {
+    --background: 0 0% 100%;
+    --foreground: 0 7% 6%;            /* #100e0e */
+    --card: 0 0% 100%;
+    --card-foreground: 0 7% 6%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 7% 6%;
+    --primary: 30 41% 63%;            /* #c7a17a */
+    --primary-foreground: 0 7% 6%;    /* dark on gold: 8.4:1, white would be 2.4:1 */
+    --secondary: 36 33% 95%;
+    --secondary-foreground: 0 7% 6%;
+    --muted: 36 25% 96%;
+    --muted-foreground: 217 7% 51%;   /* #787f8a */
+    --accent: 36 33% 94%;
+    --accent-foreground: 0 7% 6%;
+    --border: 36 18% 90%;
+    --input: 36 18% 88%;
+    --ring: 30 41% 63%;
+    --radius: 0.125rem;               /* their buttons are near-square */
+
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Clean, highly readable typography for customer & dashboard screens */
+  .theme-cafe h1,
+  .theme-cafe h2,
+  .theme-cafe h3,
+  .theme-cafe h4,
+  .theme-cafe h5,
+  .theme-cafe h6 {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+  }
+
+  .font-editorial {
+    font-family: 'Cormorant Upright', Georgia, serif;
+  }
+
+  /* Sections painted on the dark ink background: default every heading and the
+     body copy to light, so a missing utility can never render invisible text. */
+  .on-dark,
+  .on-dark h1,
+  .on-dark h2,
+  .on-dark h3,
+  .on-dark h4,
+  .on-dark h5,
+  .on-dark h6 {
+    color: #ffffff;
+  }
+}
+
+@layer components {
+  /* Display scale with high readability */
+  .h1 {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply text-[36px] sm:text-[48px] lg:text-[64px] font-extrabold leading-[1.15] tracking-tight;
+  }
+
+  .h2 {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply text-[28px] sm:text-[36px] lg:text-[44px] font-bold leading-[1.2] tracking-tight;
+  }
+
+  .h3 {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply text-[22px] sm:text-[26px] lg:text-[30px] font-bold leading-[1.3] tracking-tight;
+  }
+
+  .lead {
+    @apply text-base sm:text-lg xl:text-xl leading-relaxed;
+  }
+
+  /* 54px tall, min 156px wide, uppercase 13px with wide tracking. */
+  .btn-cafe {
+    @apply inline-flex items-center justify-center h-[54px] min-w-[156px] px-6
+           bg-brand-gold text-brand-ink hover:bg-brand-gold-dark
+           text-[13px] uppercase tracking-[0.15em] font-semibold
+           transition-all duration-300 rounded-sm
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold
+           focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none;
+  }
+
+  .btn-cafe-outline {
+    @apply inline-flex items-center justify-center h-[54px] min-w-[156px] px-6
+           border border-brand-gold text-brand-gold hover:bg-brand-gold hover:text-brand-ink
+           text-[13px] uppercase tracking-[0.15em] font-semibold
+           transition-all duration-300 rounded-sm
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold
+           focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none;
+  }
+
+  /* Small uppercase kicker that sits above section headings. */
+  .eyebrow {
+    @apply text-[13px] uppercase tracking-[0.25em] text-brand-gold font-semibold;
+  }
+}
+
+/*
+ * Scroll reveal. The source design used GSAP ScrollTrigger plus Locomotive
+ * Scroll; this is the same effect driven by IntersectionObserver, which keeps
+ * roughly 200KB of animation libraries out of the bundle.
+ */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Universal Dark Mode Autofill Fix */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #1e1918 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* ---------------------------------------------------------------------------
+ * Auth screen animation.
+ * ------------------------------------------------------------------------ */
+
+/* The card settles into place on mount. */
+@keyframes auth-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Each element inside the panel rises in turn; --d sets its turn. */
+@keyframes auth-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Slow drift across the photograph so the panel is never quite still. */
+@keyframes auth-ken-burns {
+  from {
+    transform: scale(1.06) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.18) translate3d(-2%, -2.5%, 0);
+  }
+}
+
+/* The blurred backdrop breathes behind the card. */
+@keyframes auth-ambient {
+  from {
+    transform: scale(1.1) translate3d(0, 0, 0);
+    opacity: 0.22;
+  }
+  to {
+    transform: scale(1.22) translate3d(1.5%, -1.5%, 0);
+    opacity: 0.32;
+  }
+}
+
+/* Rejected credentials: a short lateral shake, no colour change needed. */
+@keyframes auth-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-7px); }
+  40%, 60% { transform: translateX(7px); }
+}
+
+.auth-card {
+  animation: auth-card-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-card.is-rejected {
+  animation: auth-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.auth-item {
+  animation: auth-item-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+.auth-photo {
+  animation: auth-ken-burns 26s ease-in-out infinite alternate;
+}
+
+.auth-ambient {
+  animation: auth-ambient 18s ease-in-out infinite alternate;
+}
+
+/* Light sweeps across the submit button on hover. */
+.auth-submit {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+}
+
+.auth-submit::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -60%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.auth-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.65);
+}
+
+.auth-submit:hover:not(:disabled)::after {
+  left: 115%;
+}
+
+.auth-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card,
+  .auth-card.is-rejected,
+  .auth-item,
+  .auth-photo,
+  .auth-ambient {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .auth-submit,
+  .auth-submit::after {
+    transition: none;
+  }
+  .auth-submit:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Subtle Organic Warm Background Pattern */
+.bg-subtle-mesh {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(223, 196, 167, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(124, 78, 238, 0.05) 0px, transparent 50%);
+}
+
+.bg-dark-mesh {
+  background-image: 
+    radial-gradient(at 20% 0%, rgba(84, 55, 37, 0.25) 0px, transparent 60%),
+    radial-gradient(at 80% 80%, rgba(124, 78, 238, 0.12) 0px, transparent 50%);
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.25);
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.45);
+  }
+}

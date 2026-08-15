@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    // The root config sets noEmit for editor/type-check use. The server is
+    // actually compiled to dist/ and run with `node dist/index.js`, so it must
+    // opt back in — without this `npm run build` exits 0 and emits nothing.
+    "noEmit": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "prisma/seed.ts"]
+}
