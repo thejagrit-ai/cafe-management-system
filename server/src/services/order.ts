@@ -30,10 +30,26 @@ interface UpdateOrderStatusData {
   cancellationReason?: string;
 }
 
+/**
+ * Forward-by-one movement through the fulfilment flow, plus cancellation from
+ * any state that has not finished yet.
+ *
+ * Staff advance orders one step at a time — the barista console renders a
+ * single "Avanzar →" button computed from the current status, so skipping is
+ * not something the product actually offers. Letting the API accept jumps
+ * anyway only allowed states the UI cannot produce, and a skipped CONFIRMED
+ * left `confirmedAt` null, quietly losing the record of when the order was
+ * accepted.
+ *
+ * Admins are exempt from this check in `updateStatus` below, which is the
+ * intended escape hatch for corrections.
+ */
 const VALID_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.CANCELLED],
-  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.CANCELLED],
-  [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.CANCELLED],
+  [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+  [OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.CANCELLED],
+  // Dine-in and pickup finish at COMPLETED; delivery goes out as DELIVERED
+  // first and is closed once the courier confirms.
   [OrderStatus.READY]: [OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.CANCELLED],
   [OrderStatus.DELIVERED]: [OrderStatus.COMPLETED],
   [OrderStatus.COMPLETED]: [],
@@ -299,7 +315,12 @@ export class OrderService {
 
     const updatedOrder = await prisma.$transaction(async (tx) => {
       const updateData: Prisma.OrderUpdateInput = { status: data.status };
-      if (data.status === OrderStatus.CONFIRMED && !order.confirmedAt) {
+      // Any state from CONFIRMED onward means the order was accepted, so stamp
+      // the acceptance time if it is still missing. Staff now move one step at
+      // a time and always pass through CONFIRMED, but an admin correction may
+      // jump straight to a later state — this keeps that from silently losing
+      // the record of when the order was taken.
+      if (INVENTORY_DEDUCTED_STATUSES.includes(data.status) && !order.confirmedAt) {
         updateData.confirmedAt = new Date();
       }
       if (data.status === OrderStatus.CANCELLED) {

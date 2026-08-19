@@ -42,6 +42,47 @@ export class OrderRepository extends BaseRepository<Order, Prisma.OrderCreateInp
     });
   }
 
+  /**
+   * Paginated list with the relations every list screen renders.
+   *
+   * The base implementation selects no relations, which left the admin order
+   * table showing "Cliente en barra" for every row, the kitchen queue showing
+   * a blank line where the drink names belong, and the customer's order
+   * history reporting "0 items" for each visit.
+   *
+   * Line items are included with their product because the barista screen
+   * lists what to make; the customer's user record comes along for the email
+   * shown beside the name.
+   */
+  override async findMany(
+    options: PaginationOptions & { where?: Prisma.OrderWhereInput }
+  ): Promise<PaginatedResult<Order>> {
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc', where } = options;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.model.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+        include: {
+          items: { include: { product: true } },
+          customer: { include: { user: true } },
+        },
+      }),
+      this.model.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   async findByCustomer(customerId: string, options: PaginationOptions = {}): Promise<PaginatedResult<Order>> {
     return this.findMany({
       ...options,

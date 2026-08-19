@@ -8,14 +8,14 @@ import {
   paymentExportQuerySchema,
   updatePaymentStatusSchema,
 } from '../validators/order';
-import { idParamSchema } from '../validators/auth';
+import { idParamSchema, orderIdParamSchema } from '../validators/auth';
 
 const router = Router();
 
 router.get('/', authenticate, authorize('ADMIN', 'STAFF'), validate(paymentQuerySchema), paymentController.findAll);
 router.get('/export', authenticate, authorize('ADMIN'), validate(paymentExportQuerySchema), paymentController.exportAll);
 router.get('/totals-by-method', authenticate, authorize('ADMIN'), paymentController.getTotalsByMethod);
-router.get('/order/:orderId', authenticate, validate(idParamSchema), paymentController.findByOrderId);
+router.get('/order/:orderId', authenticate, validate(orderIdParamSchema), paymentController.findByOrderId);
 
 router.post('/', authenticate, authorize('ADMIN', 'STAFF'), validate(createPaymentSchema), paymentController.create);
 

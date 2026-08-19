@@ -54,3 +54,23 @@ export const idParamSchema = z.object({
     id: z.string().cuid('Invalid ID format'),
   }),
 });
+
+/**
+ * Param validators for routes whose placeholder is not called `id`.
+ *
+ * Applying `idParamSchema` to `/category/:categoryId` or `/order/:orderId`
+ * looked right but rejected every request with "params.id: Required", because
+ * the param that exists is named differently — those two endpoints answered
+ * 400 unconditionally.
+ */
+export const categoryIdParamSchema = z.object({
+  params: z.object({
+    categoryId: z.string().cuid('Invalid ID format'),
+  }),
+});
+
+export const orderIdParamSchema = z.object({
+  params: z.object({
+    orderId: z.string().cuid('Invalid ID format'),
+  }),
+});

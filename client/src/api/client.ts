@@ -38,6 +38,77 @@ class ApiClient {
     localStorage.removeItem('refreshToken');
   }
 
+  /**
+   * Whether this browser has ever signed in. Guests have no tokens, and firing
+   * a refresh for them on every page load is pure waste — but anyone who does
+   * have tokens deserves a refresh attempt before being treated as logged out.
+   */
+  private hasSession(): boolean {
+    if (typeof window === 'undefined') return false;
+    return Boolean(localStorage.getItem('accessToken') || localStorage.getItem('refreshToken'));
+  }
+
+  /**
+   * Endpoints that must never trigger a refresh: the refresh call itself, and
+   * the credential endpoints where a 401 means "wrong password", not "expired".
+   */
+  private isRefreshExempt(endpoint: string): boolean {
+    return (
+      endpoint.includes('/auth/refresh') ||
+      endpoint.includes('/auth/refresh-token') ||
+      endpoint.includes('/auth/login') ||
+      endpoint.includes('/auth/register')
+    );
+  }
+
+  /**
+   * Single-flight refresh. The server rotates refresh tokens — each use revokes
+   * the previous one — so two requests expiring together would race, the loser
+   * would present an already-revoked token, and the user would be logged out
+   * mid-session. Concurrent callers share one in-flight refresh instead.
+   */
+  private refreshInFlight: Promise<string | null> | null = null;
+
+  private refreshTokens(): Promise<string | null> {
+    if (this.refreshInFlight) return this.refreshInFlight;
+
+    this.refreshInFlight = (async () => {
+      try {
+        const refreshToken =
+          typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+
+        const res = await fetch(`${this.baseUrl}/auth/refresh-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ refreshToken: refreshToken || '' }),
+        });
+
+        if (!res.ok) {
+          this.clearStoredTokens();
+          return null;
+        }
+
+        const data = await res.json();
+        const accessToken = data?.data?.tokens?.accessToken;
+        if (accessToken) {
+          this.setStoredTokens(accessToken, data.data.tokens.refreshToken);
+          return accessToken as string;
+        }
+        // The refresh-token cookie may have renewed the session without
+        // returning a body token; treat that as success and retry as-is.
+        return '';
+      } catch {
+        this.clearStoredTokens();
+        return null;
+      } finally {
+        this.refreshInFlight = null;
+      }
+    })();
+
+    return this.refreshInFlight;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -73,48 +144,24 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        // Transparent token refresh on 401 Unauthorized (unless already refreshing, checking session, or logging in)
-        if (
-          response.status === 401 &&
-          !endpoint.includes('/auth/me') &&
-          !endpoint.includes('/auth/refresh') &&
-          !endpoint.includes('/auth/refresh-token') &&
-          !endpoint.includes('/auth/login') &&
-          !endpoint.includes('/auth/register')
-        ) {
-          try {
-            const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
-            const refreshRes = await fetch(`${this.baseUrl}/auth/refresh-token`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ refreshToken: refreshToken || '' }),
-            });
+        // Transparent token refresh on 401. `/auth/me` is deliberately included
+        // here: access tokens live 15 minutes while refresh tokens live 7 days,
+        // so excluding it logged every signed-in user out on the first reload
+        // after a quarter of an hour, despite a perfectly valid session.
+        // `hasSession` keeps guests from paying for a pointless refresh.
+        if (response.status === 401 && !this.isRefreshExempt(endpoint) && this.hasSession()) {
+          const newToken = await this.refreshTokens();
 
-            if (refreshRes.ok) {
-              const refreshData = await refreshRes.json();
-              if (refreshData?.data?.tokens?.accessToken) {
-                this.setStoredTokens(
-                  refreshData.data.tokens.accessToken,
-                  refreshData.data.tokens.refreshToken
-                );
-                // Retry with new token header
-                headers.Authorization = `Bearer ${refreshData.data.tokens.accessToken}`;
-              }
+          if (newToken !== null) {
+            if (newToken) headers.Authorization = `Bearer ${newToken}`;
 
-              const retryResponse = await fetch(url, { ...config, headers });
-              const retryData = await retryResponse.json();
+            const retryResponse = await fetch(url, { ...config, headers });
+            const retryData = await retryResponse.json();
 
-              if (!retryResponse.ok) {
-                throw { status: retryResponse.status, ...retryData };
-              }
-              return retryData;
-            } else {
-              this.clearStoredTokens();
+            if (!retryResponse.ok) {
+              throw { status: retryResponse.status, ...retryData };
             }
-          } catch (refreshErr: any) {
-            this.clearStoredTokens();
-            if (refreshErr?.status) throw refreshErr;
+            return retryData;
           }
         }
 
