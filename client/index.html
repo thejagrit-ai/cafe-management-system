@@ -8,7 +8,25 @@
     <title>The Coffee Bean Cafe</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Upright:wght@300;400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet" />
+    <!--
+      Only the two families the design actually uses, without the italic axis
+      (nothing renders italic) — Open Sans was being downloaded and never
+      referenced. Loaded with media="print" so the request never blocks the
+      first paint; `display=swap` means text is readable in the fallback face
+      until the webfont arrives.
+    -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Upright:wght@400;500;600;700&family=Inter:opsz,wght@14..32,100..900&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Upright:wght@400;500;600;700&family=Inter:opsz,wght@14..32,100..900&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
   </head>
   <body class="bg-background text-foreground antialiased selection:bg-[#c7a17a]/30 selection:text-[#100e0e]">
     <div id="root"></div>

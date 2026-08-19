@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
@@ -25,6 +26,20 @@ const app = express();
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
+// gzip every JSON response. Menu, order and report payloads are highly
+// repetitive text and shrink by roughly 80%, which is the difference between a
+// snappy and a sluggish list on a phone connection.
+app.use(compression({
+  filter: (req, res) => {
+    // Server-Sent Events must not be buffered: compressing the stream would
+    // hold each event back until the buffer filled, stalling live order
+    // notifications for kitchen and admin screens.
+    if (req.path.startsWith('/api/events')) return false;
+    if (res.getHeader('Content-Type') === 'text/event-stream') return false;
+    return compression.filter(req, res);
+  },
 }));
 app.use(cors({
   origin: true,

@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { userRepository } from '../repositories/user';
 import { hashPassword, verifyPassword } from '../utils/helpers';
-import { AuthenticationError, ConflictError } from '../utils/errors';
+import { AuthenticationError, ConflictError, NotFoundError } from '../utils/errors';
 import { createAuditLog, getAuditDataFromRequest } from '../utils/audit';
 import { AuthenticatedRequest } from '../types';
 import prisma from '../config/prisma';
@@ -228,6 +228,60 @@ export class AuthService {
         ...getAuditDataFromRequest(req),
       });
     }
+  }
+
+  /**
+   * Updates the name, phone and birthday on whichever profile record backs the
+   * account. Those fields live on Customer or Employee, not on User, so the
+   * write is routed by role and the refreshed User (with relations) is returned
+   * in the same shape `getMe` produces.
+   */
+  async updateProfile(
+    userId: string,
+    data: { firstName?: string; lastName?: string; phone?: string; dateOfBirth?: string }
+  ): Promise<any> {
+    const user = await userRepository.findByIdWithRelations(userId);
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+
+    // Undefined values are dropped so a partial update never blanks a field.
+    const profileData: { firstName?: string; lastName?: string; phone?: string } = {};
+    if (data.firstName !== undefined) profileData.firstName = data.firstName;
+    if (data.lastName !== undefined) profileData.lastName = data.lastName;
+    if (data.phone !== undefined) profileData.phone = data.phone;
+
+    if (user.customer) {
+      await prisma.customer.update({
+        where: { userId },
+        data: {
+          ...profileData,
+          // `dateOfBirth` is only on Customer; employees have no such column.
+          ...(data.dateOfBirth !== undefined ? { dateOfBirth: new Date(data.dateOfBirth) } : {}),
+        },
+      });
+    } else if (user.employee) {
+      await prisma.employee.update({
+        where: { userId },
+        data: profileData,
+      });
+    } else {
+      throw new NotFoundError('Profile');
+    }
+
+    await createAuditLog({
+      userId,
+      action: 'UPDATE_PROFILE',
+      entity: 'User',
+      entityId: userId,
+      ...getAuditDataFromRequest({ user } as AuthenticatedRequest),
+    });
+
+    const updated = await userRepository.findByIdWithRelations(userId);
+    if (!updated) {
+      throw new NotFoundError('User');
+    }
+    return updated;
   }
 }
 

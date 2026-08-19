@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useMemo, useCallback } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,10 @@ import {
   Trash2,
   Coffee,
   Check,
-  Smartphone
+  Copy,
+  AlertTriangle,
+  Smartphone,
+  Globe
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -34,12 +37,64 @@ const DEFAULT_TABLES: TableItem[] = [
   { id: 8, name: 'Mesa 8', zone: 'Barra' },
 ]
 
+const BASE_URL_STORAGE_KEY = 'cafe_public_base_url'
+
+/** Trims trailing slashes and supplies a scheme, so `cafe.com` becomes `https://cafe.com`. */
+function normalizeBaseUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/\/+$/, '')
+  if (!trimmed) return ''
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
+/**
+ * The address customers should land on when they scan a table code.
+ *
+ * `window.location.origin` alone is wrong whenever the console is open on a
+ * host phones cannot resolve — `localhost` during development, or a preview
+ * deploy — which produced QR codes that simply never opened the menu. The
+ * saved override wins, then the build-time public URL, then the origin.
+ */
+function resolveInitialBaseUrl(): string {
+  try {
+    const saved = localStorage.getItem(BASE_URL_STORAGE_KEY)
+    if (saved) return normalizeBaseUrl(saved)
+  } catch {
+    // localStorage can be unavailable in private-browsing modes.
+  }
+  const configured = import.meta.env.VITE_PUBLIC_URL
+  if (configured) return normalizeBaseUrl(configured)
+  return typeof window !== 'undefined' ? window.location.origin : ''
+}
+
+type Reachability = 'ok' | 'unreachable' | 'lan-only'
+
+/** Flags base URLs that a customer's phone will not be able to open. */
+function classifyReachability(baseUrl: string): Reachability {
+  let hostname: string
+  try {
+    hostname = new URL(baseUrl).hostname
+  } catch {
+    return 'unreachable'
+  }
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+    return 'unreachable'
+  }
+  // Private ranges resolve only for devices on the same network.
+  if (/^10\./.test(hostname) || /^192\.168\./.test(hostname) || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) {
+    return 'lan-only'
+  }
+  return 'ok'
+}
+
 export default function AdminTables() {
   const [tables, setTables] = useState<TableItem[]>(() => {
     const saved = localStorage.getItem('cafe_admin_tables')
     if (saved) {
       try {
-        return JSON.parse(saved)
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
       } catch {
         return DEFAULT_TABLES
       }
@@ -47,11 +102,22 @@ export default function AdminTables() {
     return DEFAULT_TABLES
   })
 
-  const [selectedTable, setSelectedTable] = useState<TableItem>(tables[0] || DEFAULT_TABLES[0])
+  const [selectedTableId, setSelectedTableId] = useState<number>(() => (tables[0] ?? DEFAULT_TABLES[0]).id)
   const [newTableNum, setNewTableNum] = useState<string>('')
   const [newTableZone, setNewTableZone] = useState<string>('Salón Principal')
   const [printDialogOpen, setPrintDialogOpen] = useState<boolean>(false)
+  const [baseUrl, setBaseUrl] = useState<string>(resolveInitialBaseUrl)
+  const [baseUrlDraft, setBaseUrlDraft] = useState<string>(resolveInitialBaseUrl)
   const qrRef = useRef<HTMLDivElement>(null)
+
+  // Derived rather than stored: keeping a copy of the selected table in state
+  // let it go stale when the list changed underneath it.
+  const selectedTable = useMemo(
+    () => tables.find((t) => t.id === selectedTableId) ?? tables[0] ?? DEFAULT_TABLES[0],
+    [tables, selectedTableId]
+  )
+
+  const reachability = useMemo(() => classifyReachability(baseUrl), [baseUrl])
 
   const saveTables = (newTables: TableItem[]) => {
     setTables(newTables)
@@ -79,17 +145,42 @@ export default function AdminTables() {
   const handleDeleteTable = (id: number) => {
     const updated = tables.filter((t) => t.id !== id)
     saveTables(updated)
-    if (selectedTable.id === id && updated.length > 0) {
-      setSelectedTable(updated[0])
+    if (selectedTableId === id && updated.length > 0) {
+      setSelectedTableId(updated[0].id)
     }
     toast.success('Mesa eliminada')
   }
 
-  const originUrl = typeof window !== 'undefined' ? window.location.origin : ''
-  const getTableUrl = (tableId: number) => `${originUrl}/menu?table=${tableId}`
+  const getTableUrl = useCallback(
+    (tableId: number) => `${baseUrl}/menu?table=${tableId}`,
+    [baseUrl]
+  )
+
+  const applyBaseUrl = (e: React.FormEvent) => {
+    e.preventDefault()
+    const normalized = normalizeBaseUrl(baseUrlDraft)
+    if (!normalized) {
+      toast.error('Ingresa la dirección pública del sitio')
+      return
+    }
+    try {
+      // eslint-disable-next-line no-new
+      new URL(normalized)
+    } catch {
+      toast.error('La dirección no es una URL válida')
+      return
+    }
+    setBaseUrl(normalized)
+    setBaseUrlDraft(normalized)
+    localStorage.setItem(BASE_URL_STORAGE_KEY, normalized)
+    toast.success('Dirección actualizada. Los códigos QR se regeneraron.')
+  }
 
   const downloadQrCode = (table: TableItem) => {
-    const canvas = document.getElementById(`qr-canvas-${table.id}`) as HTMLCanvasElement
+    // Every table renders an off-screen canvas, so downloading a row that is
+    // not the one previewed works too — previously only the selected table had
+    // a canvas in the DOM and the others failed silently.
+    const canvas = document.getElementById(`qr-canvas-${table.id}`) as HTMLCanvasElement | null
     if (!canvas) {
       toast.error('No se pudo generar la imagen del código QR')
       return
@@ -102,12 +193,36 @@ export default function AdminTables() {
     toast.success(`Código QR de ${table.name} descargado`)
   }
 
+  const copyTableUrl = async (table: TableItem) => {
+    try {
+      await navigator.clipboard.writeText(getTableUrl(table.id))
+      toast.success(`Enlace de ${table.name} copiado`)
+    } catch {
+      toast.error('No se pudo copiar el enlace')
+    }
+  }
+
   const handlePrint = () => {
     window.print()
   }
 
   return (
     <div className="space-y-6">
+      {/* Off-screen canvases: one per table, so the download button works from
+          any row without first selecting it. */}
+      <div aria-hidden="true" className="pointer-events-none fixed -left-[9999px] top-0 opacity-0">
+        {tables.map((table) => (
+          <QRCodeCanvas
+            key={table.id}
+            id={`qr-canvas-${table.id}`}
+            value={getTableUrl(table.id)}
+            size={512}
+            level="H"
+            includeMargin
+          />
+        ))}
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
@@ -129,6 +244,62 @@ export default function AdminTables() {
             <span>Imprimir Tarjeta de Mesa</span>
           </Button>
         </div>
+      </div>
+
+      {/* Public site address — the value the QR codes are built from. */}
+      <div className="p-4 rounded-2xl border border-border/80 bg-card shadow-xs space-y-3">
+        <div className="flex items-center gap-2">
+          <Globe className="w-4 h-4 text-[#7C4EEE]" />
+          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Dirección pública del sitio
+          </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Es la dirección que abrirá el teléfono del cliente al escanear. Debe ser accesible desde fuera de este
+          computador — no la dirección local del panel.
+        </p>
+        <form onSubmit={applyBaseUrl} className="flex flex-col sm:flex-row gap-2">
+          <Input
+            type="text"
+            value={baseUrlDraft}
+            onChange={(e) => setBaseUrlDraft(e.target.value)}
+            placeholder="https://tu-cafe.com"
+            className="h-10 rounded-xl text-xs flex-1"
+            inputMode="url"
+          />
+          <Button type="submit" size="sm" className="h-10 rounded-xl bg-[#7C4EEE] text-white px-4 text-xs">
+            Guardar y regenerar
+          </Button>
+        </form>
+
+        {reachability === 'unreachable' && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span className="text-[11px]">
+              <strong>Los códigos QR no funcionarán todavía.</strong> Apuntan a{' '}
+              <code className="font-mono">{baseUrl || '—'}</code>, una dirección que solo existe en este computador. El
+              teléfono del cliente no podrá abrirla. Escribe arriba la dirección pública de tu sitio (por ejemplo{' '}
+              <code className="font-mono">https://tu-cafe.com</code>) antes de imprimir las tarjetas.
+            </span>
+          </div>
+        )}
+
+        {reachability === 'lan-only' && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 dark:bg-sky-950/40 dark:border-sky-900 dark:text-sky-200">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span className="text-[11px]">
+              Esta es una dirección de red local: solo funcionará para teléfonos conectados al mismo Wi-Fi del café.
+              Sirve para probar, pero usa la dirección pública para las tarjetas definitivas.
+            </span>
+          </div>
+        )}
+
+        {reachability === 'ok' && (
+          <div className="flex items-center gap-2 text-[11px] text-emerald-600 dark:text-emerald-400">
+            <Check className="w-3.5 h-3.5 shrink-0" />
+            <span>Dirección pública válida. Los códigos QR abrirán la carta en cualquier teléfono.</span>
+          </div>
+        )}
       </div>
 
       {/* Main Grid */}
@@ -177,12 +348,17 @@ export default function AdminTables() {
             </div>
 
             <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin">
+              {tables.length === 0 && (
+                <p className="py-8 text-center text-xs text-muted-foreground">
+                  No hay mesas registradas. Agrega la primera arriba.
+                </p>
+              )}
               {tables.map((table) => {
                 const isSelected = selectedTable.id === table.id
                 return (
                   <div
                     key={table.id}
-                    onClick={() => setSelectedTable(table)}
+                    onClick={() => setSelectedTableId(table.id)}
                     className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                       isSelected
                         ? 'border-[#7C4EEE] bg-[#7C4EEE]/10 shadow-xs'
@@ -212,6 +388,15 @@ export default function AdminTables() {
                     </div>
 
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyTableUrl(table)}
+                        className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground"
+                        title="Copiar enlace"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -276,7 +461,6 @@ export default function AdminTables() {
 
                 <div className="p-2 rounded-xl bg-white border border-zinc-200 shadow-xs">
                   <QRCodeCanvas
-                    id={`qr-canvas-${selectedTable.id}`}
                     value={getTableUrl(selectedTable.id)}
                     size={160}
                     level="H"
@@ -325,6 +509,15 @@ export default function AdminTables() {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => copyTableUrl(selectedTable)}
+                    className="rounded-xl text-xs font-semibold"
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Copiar Enlace</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setPrintDialogOpen(true)}
                     className="rounded-xl text-xs font-semibold"
                   >
@@ -348,6 +541,16 @@ export default function AdminTables() {
             </DialogTitle>
           </DialogHeader>
 
+          {reachability === 'unreachable' && (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                Este código apunta a una dirección local y no abrirá la carta desde un teléfono. Configura la dirección
+                pública del sitio antes de imprimir.
+              </span>
+            </div>
+          )}
+
           {/* Printable Layout */}
           <div className="p-6 rounded-2xl bg-white text-black border border-zinc-300 shadow-md flex flex-col items-center text-center space-y-4 my-2">
             <div className="flex items-center gap-2 text-zinc-900 font-serif font-bold text-lg">
@@ -356,7 +559,7 @@ export default function AdminTables() {
               </div>
               <div className="text-left">
                 <span className="block leading-none">The Coffee Bean</span>
-                <span className="text-[9px] uppercase tracking-widest text-zinc-500">Cafe & Roastery</span>
+                <span className="text-[9px] uppercase tracking-widest text-zinc-500">Cafe &amp; Roastery</span>
               </div>
             </div>
 

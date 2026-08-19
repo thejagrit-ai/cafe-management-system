@@ -41,3 +41,7 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://cafe-server.onrender.com/api
+      # Address encoded into the table QR codes. Must be the public site, not
+      # whatever host the admin happens to have the console open on.
+      - key: VITE_PUBLIC_URL
+        value: https://cafe-client.onrender.com

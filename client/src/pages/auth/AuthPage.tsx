@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useState } from 'react'
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
@@ -7,10 +7,12 @@ import { TiltCard } from '@/components/auth/TiltCard'
 import { ArrowLeft, Coffee, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/utils/lib'
+import { prefersLightweightExperience, whenIdle } from '@/utils/deviceCapability'
 
 // three.js is heavy, so the scene loads on its own chunk and only on this
 // route. The gradient below shows until it arrives — and stays forever if the
-// device has no WebGL.
+// device has no WebGL, is on a small screen, or is on a metered connection:
+// ~860 kB of decoration is not a fair price for signing in from a phone.
 const CoffeeScene = lazy(() => import('@/components/auth/CoffeeScene'))
 
 const MIN_PASSWORD_LENGTH = 8
@@ -43,6 +45,14 @@ export default function AuthPage() {
 
   const [flipped, setFlipped] = useState(pathname === '/register')
   const [isLoading, setIsLoading] = useState(false)
+  const [showScene, setShowScene] = useState(false)
+
+  // Deferred to idle so the sign-in form is interactive before the backdrop
+  // starts downloading.
+  useEffect(() => {
+    if (prefersLightweightExperience()) return
+    return whenIdle(() => setShowScene(true))
+  }, [])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -155,9 +165,11 @@ export default function AuthPage() {
         aria-hidden="true"
       />
 
-      <Suspense fallback={null}>
-        <CoffeeScene />
-      </Suspense>
+      {showScene && (
+        <Suspense fallback={null}>
+          <CoffeeScene />
+        </Suspense>
+      )}
 
       {/* Keeps text legible over whatever drifts past behind it. */}
       <div className="absolute inset-0 bg-brand-ink/45" aria-hidden="true" />

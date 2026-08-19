@@ -4,7 +4,10 @@ import type { User, LoginInput, RegisterInput } from '../types';
 
 interface AuthContextType {
   user: User | null;
+  /** True while a session probe is in flight for a visitor who looks logged in. */
   isLoading: boolean;
+  /** True once the session probe has finished, whether or not it found a user. */
+  isSessionResolved: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isEmployee: boolean;
@@ -17,9 +20,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * A stored access token means this browser has signed in before, so the
+ * session probe is worth waiting for. Without one the visitor is almost
+ * certainly a guest, and blocking the first paint on a round trip to a
+ * cold-started API just to confirm that costs seconds for nothing.
+ */
+function hasStoredSession(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return Boolean(localStorage.getItem('accessToken') || localStorage.getItem('refreshToken'));
+  } catch {
+    return false;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSessionResolved, setIsSessionResolved] = useState(false);
+  const [isProbing, setIsProbing] = useState(true);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -35,16 +54,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Guests are released immediately; the probe below still runs so a
+    // cookie-only session (token cleared from storage, cookie still valid) is
+    // picked up as soon as the API answers.
+    const likelyAuthenticated = hasStoredSession();
+    if (!likelyAuthenticated) {
+      setIsProbing(false);
+      setIsSessionResolved(true);
+    }
+
     const initAuth = async () => {
       try {
         await refreshUser();
       } catch {
         // Not authenticated
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsProbing(false);
+          setIsSessionResolved(true);
+        }
       }
     };
-    initAuth();
+
+    void initAuth();
+
+    return () => {
+      cancelled = true;
+    };
   }, [refreshUser]);
 
   const login = async (data: LoginInput) => {
@@ -73,7 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextType = {
     user,
-    isLoading,
+    isLoading: isProbing,
+    isSessionResolved,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN',
     isEmployee: user?.role === 'STAFF',

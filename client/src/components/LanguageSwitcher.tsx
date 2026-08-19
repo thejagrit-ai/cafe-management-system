@@ -2,6 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Globe } from 'lucide-react'
 import { cn } from '@/utils/lib'
+import { setLanguage as applyLanguage } from '@/i18n'
 
 interface LanguageSwitcherProps {
   className?: string
@@ -12,8 +13,11 @@ export function LanguageSwitcher({ className, showIcon = true }: LanguageSwitche
   const { i18n } = useTranslation()
   const currentLang = i18n.language.startsWith('en') ? 'en' : 'es'
 
+  // Goes through the i18n helper rather than `i18n.changeLanguage` directly:
+  // non-default catalogues are code-split and must be fetched before the
+  // switch, otherwise the UI flashes fallback strings.
   const setLanguage = (lang: 'es' | 'en') => {
-    i18n.changeLanguage(lang)
+    void applyLanguage(lang)
   }
 
   return (

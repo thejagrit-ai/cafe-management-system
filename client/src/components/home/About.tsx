@@ -1,7 +1,5 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import gsap from 'gsap'
-import ScrollTrigger from 'gsap/ScrollTrigger'
 import Badge from './Badge'
 import Separator from './Separator'
 
@@ -43,62 +41,88 @@ export default function About() {
     },
   ]
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const track = trackRef.current
     const trigger = triggerRef.current
     if (!track || !trigger) return
 
-    gsap.registerPlugin(ScrollTrigger)
+    // The pinned track only exists at xl and above, and is skipped entirely for
+    // reduced motion. Checking here — before the import — keeps GSAP off the
+    // wire for phones and tablets, where it was ~70 KB of dead weight.
+    if (!window.matchMedia('(min-width: 1200px) and (prefers-reduced-motion: no-preference)').matches) {
+      return
+    }
 
-    // gsap.matchMedia scopes the animation to a breakpoint and reverts it
-    // automatically when the query stops matching or the component unmounts.
-    const mm = gsap.matchMedia()
+    let cancelled = false
+    let teardown: (() => void) | undefined
 
-    mm.add(
-      {
-        isDesktop: '(min-width: 1200px) and (prefers-reduced-motion: no-preference)',
-      },
-      (context) => {
-        if (!context.conditions?.isDesktop) return
+    const start = async () => {
+      const [{ default: gsap }, { default: ScrollTrigger }] = await Promise.all([
+        import('gsap'),
+        import('gsap/ScrollTrigger'),
+      ])
+      // The component may have unmounted while the chunk was downloading.
+      if (cancelled) return
 
-        const distance = track.scrollWidth - window.innerWidth
+      gsap.registerPlugin(ScrollTrigger)
 
-        gsap.to(track, {
-          x: -distance,
-          ease: 'none',
-          scrollTrigger: {
-            trigger,
-            start: 'top top',
-            // Scroll distance matches the horizontal travel, so the panels move
-            // at roughly the speed of the wheel.
-            end: () => `+=${distance}`,
-            scrub: 0.6,
-            pin: true,
-            invalidateOnRefresh: true,
-            anticipatePin: 1,
-          },
-        })
+      // gsap.matchMedia scopes the animation to a breakpoint and reverts it
+      // automatically when the query stops matching or the component unmounts.
+      const mm = gsap.matchMedia()
+
+      mm.add(
+        {
+          isDesktop: '(min-width: 1200px) and (prefers-reduced-motion: no-preference)',
+        },
+        (context) => {
+          if (!context.conditions?.isDesktop) return
+
+          const distance = track.scrollWidth - window.innerWidth
+
+          gsap.to(track, {
+            x: -distance,
+            ease: 'none',
+            scrollTrigger: {
+              trigger,
+              start: 'top top',
+              // Scroll distance matches the horizontal travel, so the panels
+              // move at roughly the speed of the wheel.
+              end: () => `+=${distance}`,
+              scrub: 0.6,
+              pin: true,
+              invalidateOnRefresh: true,
+              anticipatePin: 1,
+            },
+          })
+        }
+      )
+
+      // Sections above this one fetch their content, so the page keeps growing
+      // after mount. ScrollTrigger caches start/end positions on creation and
+      // only re-measures on resize, so without this the pin would begin at the
+      // wrong scroll offset.
+      const refresh = () => ScrollTrigger.refresh()
+      window.addEventListener('load', refresh)
+
+      const observer = new ResizeObserver(() => {
+        // Debounced through rAF: the observer can fire many times per frame
+        // while images decode.
+        window.requestAnimationFrame(refresh)
+      })
+      observer.observe(document.body)
+
+      teardown = () => {
+        window.removeEventListener('load', refresh)
+        observer.disconnect()
+        mm.revert()
       }
-    )
+    }
 
-    // Sections above this one fetch their content, so the page keeps growing
-    // after mount. ScrollTrigger caches start/end positions on creation and
-    // only re-measures on resize, so without this the pin would begin at the
-    // wrong scroll offset.
-    const refresh = () => ScrollTrigger.refresh()
-    window.addEventListener('load', refresh)
-
-    const observer = new ResizeObserver(() => {
-      // Debounced through rAF: the observer can fire many times per frame
-      // while images decode.
-      window.requestAnimationFrame(refresh)
-    })
-    observer.observe(document.body)
+    void start()
 
     return () => {
-      window.removeEventListener('load', refresh)
-      observer.disconnect()
-      mm.revert()
+      cancelled = true
+      teardown?.()
     }
   }, [t])
 
