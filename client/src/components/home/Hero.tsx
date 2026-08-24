@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { prefersLightweightExperience, whenIdle } from '@/utils/deviceCapability'
 import Badge from './Badge'
 import Separator from './Separator'
 
@@ -10,34 +9,43 @@ import Separator from './Separator'
  *
  * The video and the dot-texture overlay live in `client/public/assets/hero/`.
  * The gradient underneath is kept as a fallback so the section still reads
- * properly on a slow connection, if the file is replaced, or when the browser
- * blocks autoplay.
- *
- * The `<source>` is attached only after first paint, and only for visitors the
- * capability gate clears, so the ~10 MB clip never competes with the JS, CSS
- * and fonts needed to render the page.
+ * properly on a slow connection or if autoplay is blocked.
  */
 export default function Hero() {
   const { t } = useTranslation()
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [videoSrc, setVideoSrc] = useState<string | null>(null)
+  const [isVideoReady, setIsVideoReady] = useState(false)
 
   useEffect(() => {
-    if (prefersLightweightExperience()) return
-    return whenIdle(() => setVideoSrc('/assets/hero/video.mp4'))
-  }, [])
-
-  // `autoPlay` only fires for a source present at mount, so start playback by
-  // hand once the source is swapped in.
-  useEffect(() => {
-    if (!videoSrc) return
     const video = videoRef.current
     if (!video) return
-    video.load()
-    // Autoplay can still be refused (battery saver, browser policy); the
-    // poster stays visible in that case, which is the intended fallback.
-    void video.play().catch(() => {})
-  }, [videoSrc])
+
+    const handleVideoReady = () => {
+      setIsVideoReady(true)
+    }
+
+    if (video.readyState >= 2) {
+      setIsVideoReady(true)
+    }
+
+    video.addEventListener('loadeddata', handleVideoReady)
+    video.addEventListener('canplay', handleVideoReady)
+    video.addEventListener('playing', handleVideoReady)
+
+    // Autoplay can still be refused (battery saver, browser policy); fallback stays visible
+    const playPromise = video.play()
+    if (playPromise !== undefined) {
+      playPromise.catch((error) => {
+        console.warn('Autoplay prevented or failed:', error)
+      })
+    }
+
+    return () => {
+      video.removeEventListener('loadeddata', handleVideoReady)
+      video.removeEventListener('canplay', handleVideoReady)
+      video.removeEventListener('playing', handleVideoReady)
+    }
+  }, [])
 
   return (
     <section className="on-dark relative h-[calc(100dvh-4rem)] sm:h-[90vh] xl:h-screen min-h-[620px] overflow-hidden text-white bg-brand-ink flex flex-col justify-center">
@@ -52,15 +60,18 @@ export default function Hero() {
 
       <video
         ref={videoRef}
+        src="/assets/hero/video.mp4"
+        autoPlay
         loop
         muted
         playsInline
-        preload="none"
+        preload="auto"
         poster="/assets/hero/hero-overlay.png"
-        className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-1000 data-[ready=true]:opacity-100"
-        onLoadedData={(e) => e.currentTarget.setAttribute('data-ready', 'true')}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+          isVideoReady ? 'opacity-100' : 'opacity-0'
+        }`}
       >
-        {videoSrc && <source src={videoSrc} type="video/mp4" />}
+        <source src="/assets/hero/video.mp4" type="video/mp4" />
       </video>
 
       {/* Dark wash plus the dot-texture overlay from the source design. */}
