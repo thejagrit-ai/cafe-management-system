@@ -76,8 +76,27 @@ model User {
   customer      Customer?
   employee      Employee?
   refreshTokens RefreshToken[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@map("users")
+}
+
+// A single-use link emailed to a new account to prove the address is theirs.
+//
+// Only a hash of the token is stored, the same way passwords are: whoever ends
+// up reading this table cannot use its rows to verify anyone's account. The raw
+// value exists only in the email that was sent.
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("email_verification_tokens")
 }
 
 model RefreshToken {
@@ -168,7 +187,6 @@ model Product {
 
   recipe          Recipe?
   orderItems      OrderItem[]
-  inventory       Inventory?
 
   @@index([categoryId])
   @@index([availability])
@@ -242,20 +260,6 @@ model RecipeIngredient {
 
   @@unique([recipeId, ingredientId])
   @@map("recipe_ingredients")
-}
-
-model Inventory {
-  id            String   @id @default(cuid())
-  productId     String   @unique
-  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  quantity      Int      @default(0)
-  minQuantity   Int      @default(0)
-  maxQuantity   Int      @default(100)
-  trackQuantity Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@map("inventory")
 }
 
 model InventoryTransaction {

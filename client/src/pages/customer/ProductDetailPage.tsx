@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Coffee, Plus, Minus, Clock, Users } from 'lucide-react'
+import { ArrowLeft, Coffee, Plus, Minus, Clock, Users, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { productsApi } from '@/api/products'
+import { recipesApi } from '@/api/recipes'
 import { useCart } from '@/contexts/CartContext'
 import { SmartImage } from '@/components/SmartImage'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -26,6 +27,41 @@ export default function ProductDetailPage() {
   })
 
   const product = data?.data
+
+  /**
+   * Whether the kitchen can actually make this many.
+   *
+   * The product's own availability flag only reflects whether at least one can
+   * be made, so without this a customer could add six of something and only be
+   * told at checkout that there are beans for two. Kept on a short stale time
+   * because stock moves with every order the café takes.
+   */
+  const { data: stockData, isFetching: isCheckingStock } = useQuery({
+    queryKey: ['stock-check', id, quantity],
+    queryFn: () => recipesApi.checkStock(id!, quantity),
+    enabled: Boolean(id),
+    staleTime: 30_000,
+  })
+
+  const stock = stockData?.data
+
+  /**
+   * The largest quantity the shortfall allows.
+   *
+   * The API reports what each short ingredient needs for the requested
+   * quantity, so dividing gives the per-unit draw and the whole order is capped
+   * by whichever ingredient runs out first.
+   */
+  const maxMakeable = (() => {
+    if (!stock || stock.available) return null
+    const limits = stock.missingIngredients
+      .map(({ required, available }) => {
+        const perUnit = required / quantity
+        return perUnit > 0 ? Math.floor(available / perUnit) : Infinity
+      })
+      .filter((n) => Number.isFinite(n))
+    return limits.length > 0 ? Math.max(Math.min(...limits), 0) : 0
+  })()
 
   if (isLoading) {
     return (
@@ -58,6 +94,8 @@ export default function ProductDetailPage() {
   const isUnavailable = product.availability === 'UNAVAILABLE'
   const isLimited = product.availability === 'LIMITED'
   const recipe = product.recipe
+
+  const isShort = Boolean(stock && !stock.available)
 
   const handleAdd = () => {
     addItem(product, quantity, notes || undefined)
@@ -205,14 +243,57 @@ export default function ProductDetailPage() {
               />
             </div>
 
+            {/* Shortfall notice. Shown before the button so a customer reads
+                why it is disabled rather than hunting for the reason. */}
+            {isShort && (
+              <div className="flex items-start gap-3 rounded-sm border border-amber-500/40 bg-amber-500/5 p-4 text-sm">
+                <AlertTriangle
+                  className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                  aria-hidden="true"
+                />
+                <div className="space-y-1">
+                  <p className="font-semibold text-foreground">
+                    {t('menu.stockShortTitle', { quantity })}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {maxMakeable && maxMakeable > 0
+                      ? t('menu.stockShortMax', { max: maxMakeable })
+                      : t('menu.stockShortNone')}
+                  </p>
+                  {stock!.missingIngredients.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('menu.stockShortIngredients', {
+                        ingredients: stock!.missingIngredients
+                          .map((entry) => entry.ingredient)
+                          .join(', '),
+                      })}
+                    </p>
+                  )}
+                  {maxMakeable !== null && maxMakeable > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(maxMakeable)}
+                      className="pt-1 text-xs font-semibold text-brand-gold underline-offset-2 hover:underline"
+                    >
+                      {t('menu.useMax', { max: maxMakeable })}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleAdd}
-              disabled={isUnavailable}
+              disabled={isUnavailable || isShort}
               className="btn-cafe w-full sm:w-auto"
             >
               {isUnavailable ? t('menu.outOfStock') : t('menu.addToCart')}
             </button>
+
+            {isCheckingStock && !isShort && (
+              <p className="text-sm text-muted-foreground">{t('menu.checkingStock')}</p>
+            )}
 
             {isUnavailable && (
               <p className="text-sm text-muted-foreground">{t('menu.outOfStock')}</p>

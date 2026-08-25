@@ -6,8 +6,6 @@ export const customersApi = {
 
   getById: (id: string) => api.get<Customer>(`/customers/${id}`),
 
-  updateProfile: (data: any) => api.put('/customers/me/profile', data),
-
   getAddresses: () => api.get<Address[]>('/customers/me/addresses'),
 
   createAddress: (data: any) => api.post<Address>('/customers/me/addresses', data),

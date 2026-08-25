@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authController } from '../controllers/auth';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { loginSchema, registerSchema, refreshTokenSchema, changePasswordSchema, updateProfileSchema } from '../validators/auth';
+import { loginSchema, registerSchema, refreshTokenSchema, changePasswordSchema, updateProfileSchema, verifyEmailSchema } from '../validators/auth';
 
 const router = Router();
 
@@ -14,5 +14,7 @@ router.post('/refresh-token', validate(refreshTokenSchema), authController.refre
 router.get('/me', authenticate, authController.getMe);
 router.post('/change-password', authenticate, validate(changePasswordSchema), authController.changePassword);
 router.put('/profile', authenticate, validate(updateProfileSchema), authController.updateProfile);
+router.post('/verify-email', validate(verifyEmailSchema), authController.verifyEmail);
+router.post('/resend-verification', authenticate, authController.resendVerification);
 
 export default router;

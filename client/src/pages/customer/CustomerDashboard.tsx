@@ -7,6 +7,7 @@ import { ordersApi } from '@/api/orders'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency, formatDate, getStatusColor, cn } from '@/utils/lib'
 import Separator from '@/components/home/Separator'
+import { VerifyEmailNotice } from '@/components/VerifyEmailNotice'
 
 export default function CustomerDashboard() {
   const { t } = useTranslation()
@@ -28,6 +29,10 @@ export default function CustomerDashboard() {
         </h1>
         <Separator className="mt-5" />
         <p className="mt-5 text-muted-foreground">{user?.email}</p>
+      </div>
+
+      <div className="mx-auto mt-10 max-w-4xl">
+        <VerifyEmailNotice />
       </div>
 
       <div className="mx-auto mt-14 grid max-w-4xl gap-6 sm:grid-cols-3">

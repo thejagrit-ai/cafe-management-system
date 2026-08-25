@@ -19,7 +19,7 @@ database transaction that confirms the order.
 - Cart with quantity management
 - Checkout with pickup or delivery, address selection, and payment method
 - Order confirmation, order tracking and order history
-- Account management
+- Account management with email address verification
 
 ### Staff
 
@@ -137,6 +137,12 @@ All server variables live in `server/.env` (never committed).
 | `PORT`         | no       | `3001`                                                                        | API port (default 3001)                  |
 | `CLIENT_URL`   | no       | `http://localhost:5173`                                                       | Allowed CORS origin                      |
 | `NODE_ENV`     | no       | `development`                                                                 | `development`, `production`, or `test`   |
+| `SMTP_HOST`    | no       | `smtp.example.com`                                                            | Mail server. Unset = log emails instead  |
+| `SMTP_PORT`    | no       | `587`                                                                         | Mail server port (default 587)           |
+| `SMTP_SECURE`  | no       | `false`                                                                       | `true` for implicit TLS on port 465      |
+| `SMTP_USER`    | no       | `apikey`                                                                      | SMTP username, if the relay needs one    |
+| `SMTP_PASSWORD`| no       | a provider token                                                              | SMTP password                            |
+| `MAIL_FROM`    | no       | `Cafe <no-reply@example.com>`                                                 | From header on outbound mail             |
 
 For tests, `TEST_DATABASE_URL` overrides the database. It defaults to
 `cafe_management_test` and its name **must** contain `test` — the suite refuses to
@@ -245,7 +251,7 @@ Errors return `{ "success": false, "message": "...", "errors": { "field": ["..."
 
 | Route              | Purpose                                              |
 | ------------------ | ---------------------------------------------------- |
-| `/api/auth`        | register, login, logout, refresh, profile, password   |
+| `/api/auth`        | register, login, logout, refresh, profile, password, email verification |
 | `/api/products`    | menu and product management                           |
 | `/api/categories`  | category management                                   |
 | `/api/ingredients` | ingredients, stock adjustments, low-stock, history    |

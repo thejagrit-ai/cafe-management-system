@@ -20,23 +20,32 @@ export class CustomerController {
     }
   }
 
-  async findById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  /**
+   * The signed-in customer's own record.
+   *
+   * `/customers/me` used to be pointed at `findById`, which reads
+   * `req.params.id` — a param that route does not define. The lookup ran with
+   * `undefined` and the endpoint answered 400 for every caller. The customer
+   * here comes from the authenticated session instead.
+   */
+  async findMe(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const customer = await customerService.findById(req.params.id);
+      const customerId = req.user?.customer?.id;
+      if (!customerId) {
+        return res.status(403).json({ success: false, message: 'Customer profile not found' });
+      }
+
+      const customer = await customerService.findById(customerId);
       successResponse(res, customer);
     } catch (error) {
       next(error);
     }
   }
 
-  async updateProfile(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async findById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      if (!req.user?.customer?.id) {
-        return res.status(403).json({ success: false, message: 'Customer profile not found' });
-      }
-
-      const customer = await customerService.updateProfile(req.user.id, req.body, req);
-      successResponse(res, customer, 'Profile updated successfully');
+      const customer = await customerService.findById(req.params.id);
+      successResponse(res, customer);
     } catch (error) {
       next(error);
     }

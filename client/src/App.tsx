@@ -20,6 +20,7 @@ const CheckoutPage = lazy(() => import('@/pages/customer/CheckoutPage'))
 const OrderConfirmationPage = lazy(() => import('@/pages/customer/OrderConfirmationPage'))
 const OrderHistoryPage = lazy(() => import('@/pages/customer/OrderHistoryPage'))
 const CustomerDashboard = lazy(() => import('@/pages/customer/CustomerDashboard'))
+const VerifyEmailPage = lazy(() => import('@/pages/customer/VerifyEmailPage'))
 
 const AuthPage = lazy(() => import('@/pages/auth/AuthPage'))
 
@@ -115,6 +116,9 @@ export default function App() {
       <Route path="/" element={<CustomerLayout><HomePage /></CustomerLayout>} />
       <Route path="/menu" element={<CustomerLayout><MenuPage /></CustomerLayout>} />
       <Route path="/menu/:id" element={<CustomerLayout><ProductDetailPage /></CustomerLayout>} />
+      {/* Public: the link is often opened on a different device from the one
+          that registered, where nobody is signed in. */}
+      <Route path="/verify-email" element={<CustomerLayout><VerifyEmailPage /></CustomerLayout>} />
       {/* Auth screens render outside CustomerLayout: they are a full-viewport
           split panel with their own "back to site" link, so a navbar and
           footer would only compete with the card. */}

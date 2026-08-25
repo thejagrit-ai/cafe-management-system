@@ -15,6 +15,34 @@ describe('customers', () => {
     customerToken = await tokenFor('customer');
   });
 
+  describe('GET /api/customers/me', () => {
+    /**
+     * This route was wired to the by-id handler, which reads `req.params.id` —
+     * a param `/me` does not define. Every request looked the customer up with
+     * `undefined` and came back 400.
+     */
+    it("returns the signed-in customer's own profile", async () => {
+      const res = await api().get('/api/customers/me').set(auth(customerToken));
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.firstName).toBe('Casey');
+      expect(res.body.data.user.email).toBe('customer@test.local');
+      expect(res.body.data).toHaveProperty('addresses');
+    });
+
+    it('refuses a staff member, who has no customer profile', async () => {
+      const res = await api().get('/api/customers/me').set(auth(staffToken));
+
+      expect(res.status).toBe(403);
+    });
+
+    it('refuses an anonymous caller', async () => {
+      const res = await api().get('/api/customers/me');
+
+      expect(res.status).toBe(401);
+    });
+  });
+
   it('lists customers with order counts and lifetime spend', async () => {
     const { product } = await createCatalog({ price: 10 });
 

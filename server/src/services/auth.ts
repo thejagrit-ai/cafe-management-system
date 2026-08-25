@@ -4,6 +4,7 @@ import { userRepository } from '../repositories/user';
 import { hashPassword, verifyPassword } from '../utils/helpers';
 import { AuthenticationError, ConflictError, NotFoundError } from '../utils/errors';
 import { createAuditLog, getAuditDataFromRequest } from '../utils/audit';
+import { emailVerificationService } from './emailVerification';
 import { AuthenticatedRequest } from '../types';
 import prisma from '../config/prisma';
 
@@ -85,6 +86,10 @@ export class AuthService {
       newData: { email: user.email, role: user.role },
       ...getAuditDataFromRequest({ user } as AuthenticatedRequest),
     });
+
+    // Sent after the account exists and outside the transaction: a mail server
+    // that is slow or down must not roll back a perfectly good registration.
+    await emailVerificationService.issueQuietly(user.id);
 
     return { user, tokens };
   }
@@ -238,7 +243,8 @@ export class AuthService {
    */
   async updateProfile(
     userId: string,
-    data: { firstName?: string; lastName?: string; phone?: string; dateOfBirth?: string }
+    data: { firstName?: string; lastName?: string; phone?: string; dateOfBirth?: string },
+    req?: AuthenticatedRequest
   ): Promise<any> {
     const user = await userRepository.findByIdWithRelations(userId);
     if (!user) {
@@ -269,18 +275,25 @@ export class AuthService {
       throw new NotFoundError('Profile');
     }
 
+    const updated = await userRepository.findByIdWithRelations(userId);
+    if (!updated) {
+      throw new NotFoundError('User');
+    }
+
+    // The audit entry is written from the real request when there is one, so
+    // the IP address and user agent are recorded. It used to be built from a
+    // synthesised object carrying only the user, which left both blank, and it
+    // stored neither the previous nor the new values.
     await createAuditLog({
       userId,
       action: 'UPDATE_PROFILE',
       entity: 'User',
       entityId: userId,
-      ...getAuditDataFromRequest({ user } as AuthenticatedRequest),
+      oldData: user.customer ?? user.employee ?? undefined,
+      newData: updated.customer ?? updated.employee ?? undefined,
+      ...getAuditDataFromRequest(req ?? ({ user } as AuthenticatedRequest)),
     });
 
-    const updated = await userRepository.findByIdWithRelations(userId);
-    if (!updated) {
-      throw new NotFoundError('User');
-    }
     return updated;
   }
 }

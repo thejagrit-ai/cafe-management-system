@@ -166,4 +166,79 @@ describe('authentication', () => {
       expect(res.status).toBe(403);
     });
   });
+  /**
+   * There used to be two profile-update endpoints: this one, and a
+   * customer-only `/customers/me/profile` that ran with no request validation
+   * at all. This is now the single route, and it has to keep working for both
+   * a customer and an employee, since only it ever handled employees.
+   */
+  describe('PUT /api/auth/profile', () => {
+    it("updates a customer's own name and phone", async () => {
+      const token = await tokenFor('customer');
+
+      const res = await api()
+        .put('/api/auth/profile')
+        .set(auth(token))
+        .send({ firstName: 'Casandra', phone: '+57 300 111 2222' });
+
+      expect(res.status).toBe(200);
+
+      const customer = await prisma.customer.findFirstOrThrow({
+        where: { user: { email: CREDENTIALS.customer.email } },
+      });
+      expect(customer.firstName).toBe('Casandra');
+      expect(customer.phone).toBe('+57 300 111 2222');
+      // Untouched fields survive a partial update.
+      expect(customer.lastName).toBe('Customer');
+    });
+
+    it("updates an employee's own details", async () => {
+      const token = await tokenFor('staff');
+
+      const res = await api()
+        .put('/api/auth/profile')
+        .set(auth(token))
+        .send({ firstName: 'Samuel' });
+
+      expect(res.status).toBe(200);
+
+      const employee = await prisma.employee.findFirstOrThrow({
+        where: { user: { email: CREDENTIALS.staff.email } },
+      });
+      expect(employee.firstName).toBe('Samuel')
+    });
+
+    it('records an audit entry carrying the request metadata', async () => {
+      const token = await tokenFor('customer');
+
+      await api()
+        .put('/api/auth/profile')
+        .set(auth(token))
+        .set('User-Agent', 'ProfileProbe/1.0')
+        .send({ firstName: 'Audited' });
+
+      const entry = await prisma.auditLog.findFirstOrThrow({
+        where: { action: 'UPDATE_PROFILE' },
+      });
+      expect(entry.userAgent).toBe('ProfileProbe/1.0');
+      expect(entry.newData).toBeTruthy();
+    });
+
+    it('rejects a body the schema does not allow with 400', async () => {
+      const token = await tokenFor('customer');
+
+      const res = await api()
+        .put('/api/auth/profile')
+        .set(auth(token))
+        .send({ firstName: '', dateOfBirth: 'not-a-date' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('refuses an anonymous caller with 401', async () => {
+      const res = await api().put('/api/auth/profile').send({ firstName: 'Nobody' });
+
+      expect(res.status).toBe(401);
+    });
+  });
 });

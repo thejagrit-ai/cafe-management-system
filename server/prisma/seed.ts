@@ -19,7 +19,6 @@ async function clean() {
   await prisma.recipeIngredient.deleteMany();
   await prisma.recipe.deleteMany();
   await prisma.inventoryTransaction.deleteMany();
-  await prisma.inventory.deleteMany();
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
   await prisma.ingredient.deleteMany();
@@ -68,6 +67,8 @@ async function main() {
 
   await clean();
 
+  // The demo accounts below are created directly rather than registered, so
+  // their addresses need no confirmation and they skip the verification prompt.
   const adminPasswordHash = await hashPassword('admin123');
   const staffPasswordHash = await hashPassword('staff123');
   const customerPasswordHash = await hashPassword('customer123');
@@ -77,6 +78,7 @@ async function main() {
       email: 'admin@cafe.com',
       passwordHash: adminPasswordHash,
       role: Role.ADMIN,
+      emailVerified: true,
     },
   });
 
@@ -85,6 +87,7 @@ async function main() {
       email: 'staff@cafe.com',
       passwordHash: staffPasswordHash,
       role: Role.STAFF,
+      emailVerified: true,
     },
   });
 
@@ -93,6 +96,7 @@ async function main() {
       email: 'customer@cafe.com',
       passwordHash: customerPasswordHash,
       role: Role.CUSTOMER,
+      emailVerified: true,
     },
   });
 
@@ -596,6 +600,7 @@ async function main() {
         email: `${spec.first.toLowerCase()}.${spec.last.toLowerCase()}@example.com`,
         passwordHash: sharedCustomerHash,
         role: Role.CUSTOMER,
+        emailVerified: true,
       },
     });
     extraCustomers.push(

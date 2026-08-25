@@ -51,40 +51,6 @@ export class CustomerService {
     return customer;
   }
 
-  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string; dateOfBirth?: string }, req: AuthenticatedRequest) {
-    const customer = await prisma.customer.findUnique({ where: { userId } });
-    if (!customer) {
-      throw new NotFoundError('Customer');
-    }
-
-    const updated = await prisma.$transaction(async (tx) => {
-      const updatedCustomer = await tx.customer.update({
-        where: { id: customer.id },
-        data: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          phone: data.phone,
-          dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-        },
-        include: { user: true, addresses: true },
-      });
-
-      await createAuditLog({
-        userId: req.user?.id,
-        action: 'UPDATE_PROFILE',
-        entity: 'Customer',
-        entityId: customer.id,
-        oldData: customer,
-        newData: updatedCustomer,
-        ...getAuditDataFromRequest(req),
-      });
-
-      return updatedCustomer;
-    });
-
-    return updated;
-  }
-
   async getAddresses(customerId: string) {
     return addressRepository.findByCustomer(customerId);
   }

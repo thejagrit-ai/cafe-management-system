@@ -5,6 +5,8 @@ export interface User {
   email: string;
   role: Role;
   isActive: boolean;
+  /** Absent on sessions cached before verification existed. */
+  emailVerified?: boolean;
   createdAt: string;
   lastLoginAt?: string;
   customer?: Customer;

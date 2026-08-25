@@ -166,9 +166,10 @@ export class LoyaltyService {
   /**
    * Spends points against an order inside the caller's transaction.
    *
-   * Redemption has to commit with the order it discounts. The standalone
-   * `redeemPoints` below opens its own transaction, so using it during
-   * checkout could debit a customer for an order that then failed to write.
+   * Redemption has to commit with the order it discounts, which is why this
+   * takes the caller's transaction rather than opening its own — a debit that
+   * committed separately could leave a customer short of points for an order
+   * that then failed to write.
    *
    * Returns the discount in currency.
    */
@@ -206,42 +207,6 @@ export class LoyaltyService {
         description: `Redencion de puntos en comanda ($${discountAmount.toLocaleString()} COP)`,
       },
     });
-
-    return discountAmount;
-  }
-
-  async redeemPoints(customerId: string, pointsToRedeem: number, orderId?: string): Promise<number> {
-    if (pointsToRedeem <= 0) return 0;
-
-    const customer = await prisma.customer.findUnique({ where: { id: customerId } });
-    if (!customer) throw new NotFoundError('Customer');
-
-    if (customer.loyaltyPoints < pointsToRedeem) {
-      throw new BadRequestError(`Saldo de puntos insuficiente. Tienes ${customer.loyaltyPoints} puntos disponibles.`);
-    }
-
-    const discountAmount = pointsToRedeem * POINT_REDEMPTION_VALUE;
-    const newBalance = customer.loyaltyPoints - pointsToRedeem;
-    const updatedTier = this.calculateTier(newBalance);
-
-    await prisma.$transaction([
-      prisma.customer.update({
-        where: { id: customerId },
-        data: {
-          loyaltyPoints: newBalance,
-          loyaltyTier: updatedTier,
-        },
-      }),
-      prisma.loyaltyTransaction.create({
-        data: {
-          customerId,
-          orderId,
-          points: -pointsToRedeem,
-          type: 'REDEEMED',
-          description: `Redención de puntos en comanda ($${discountAmount.toLocaleString()} COP)`,
-        },
-      }),
-    ]);
 
     return discountAmount;
   }

@@ -8,8 +8,7 @@ import { idParamSchema, paginationSchema } from '../validators/auth';
 const router = Router();
 
 router.get('/', authenticate, authorize('ADMIN'), validate(paginationSchema), customerController.findAll);
-router.get('/me', authenticate, authorize('CUSTOMER'), customerController.findById);
-router.put('/me/profile', authenticate, authorize('CUSTOMER'), customerController.updateProfile);
+router.get('/me', authenticate, authorize('CUSTOMER'), customerController.findMe);
 
 router.get('/me/addresses', authenticate, authorize('CUSTOMER'), customerController.getAddresses);
 router.post('/me/addresses', authenticate, authorize('CUSTOMER'), validate(createAddressSchema), customerController.createAddress);

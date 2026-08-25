@@ -30,6 +30,12 @@ export const changePasswordSchema = z.object({
   }),
 });
 
+export const verifyEmailSchema = z.object({
+  body: z.object({
+    token: z.string().min(1, 'A verification token is required'),
+  }),
+});
+
 export const updateProfileSchema = z.object({
   body: z.object({
     firstName: z.string().min(1).max(50).optional(),
@@ -72,5 +78,11 @@ export const categoryIdParamSchema = z.object({
 export const orderIdParamSchema = z.object({
   params: z.object({
     orderId: z.string().cuid('Invalid ID format'),
+  }),
+});
+
+export const productIdParamSchema = z.object({
+  params: z.object({
+    productId: z.string().cuid('Invalid ID format'),
   }),
 });

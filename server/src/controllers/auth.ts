@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth';
+import { emailVerificationService } from '../services/emailVerification';
 import { successResponse, createdResponse } from '../utils/response';
 import { AuthenticatedRequest } from '../types';
 
@@ -22,6 +23,26 @@ export class AuthController {
       res.cookie('refreshToken', tokens.refreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
       createdResponse(res, { user: userWithoutPassword, tokens }, 'Registration successful');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /** Consumes the link from a verification email. Deliberately public. */
+  async verifyEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await emailVerificationService.verify(req.body.token);
+      successResponse(res, result, 'Email address verified');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /** Sends the signed-in user another verification link. */
+  async resendVerification(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await emailVerificationService.issue(req.user!.id);
+      successResponse(res, result, 'Verification email sent');
     } catch (error) {
       next(error);
     }
@@ -98,7 +119,7 @@ export class AuthController {
 
   async updateProfile(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const user = await authService.updateProfile(req.user!.id, req.body);
+      const user = await authService.updateProfile(req.user!.id, req.body, req);
       const { passwordHash, ...userWithoutPassword } = user;
       successResponse(res, userWithoutPassword, 'Profile updated successfully');
     } catch (error) {
