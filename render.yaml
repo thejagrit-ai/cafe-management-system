@@ -11,7 +11,10 @@ services:
     runtime: node
     plan: free
     rootDir: server
-    buildCommand: npm install --include=dev && npm run build && npx prisma db push && npm run db:seed
+    # db:seed is a no-op once the database has data (it used to truncate every
+    # table on every deploy). db:repair-images repoints any rows still holding
+    # a dead remote photo URL at the assets bundled with the client.
+    buildCommand: npm install --include=dev && npm run build && npx prisma db push && npm run db:seed && npm run db:repair-images
     startCommand: npm start
     envVars:
       - key: NODE_ENV

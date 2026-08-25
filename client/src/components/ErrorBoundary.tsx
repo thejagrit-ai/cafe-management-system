@@ -1,6 +1,8 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, RotateCcw } from 'lucide-react'
+// A class component cannot use the hook, so it reads the catalogue directly.
+import i18n from '@/i18n'
 
 interface Props {
   children: ReactNode
@@ -41,9 +43,9 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="space-y-1">
-              <h2 className="font-serif text-xl font-bold">Ocurrió un error inesperado</h2>
+              <h2 className="font-serif text-xl font-bold">{i18n.t('errors.boundaryTitle')}</h2>
               <p className="text-xs text-muted-foreground">
-                La aplicación encontró una discordancia en la interfaz. Haz clic para recargar la vista.
+                {i18n.t('errors.boundaryDesc')}
               </p>
             </div>
 
@@ -52,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
               className="w-full rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold h-10 flex items-center justify-center gap-2"
             >
               <RotateCcw className="w-4 h-4" />
-              <span>Recargar Página</span>
+              <span>{i18n.t('errors.reloadPage')}</span>
             </Button>
           </div>
         </div>

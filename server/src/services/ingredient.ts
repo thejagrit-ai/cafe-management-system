@@ -5,7 +5,7 @@ import { createAuditLog, getAuditDataFromRequest } from '../utils/audit';
 import { NotFoundError, ConflictError } from '../utils/errors';
 import { AuthenticatedRequest } from '../types';
 import { InventoryTransactionType } from '@prisma/client';
-import { eventHub } from '../utils/eventHub';
+import { syncAvailabilityForIngredients, announceStockLevels } from './stockSync';
 import prisma from '../config/prisma';
 
 export class IngredientService {
@@ -64,12 +64,7 @@ export class IngredientService {
       return newIngredient;
     });
 
-    eventHub.broadcast('INVENTORY_UPDATED', {
-      id: ingredient.id,
-      name: ingredient.name,
-      currentStock: ingredient.currentStock,
-      isLowStock: Number(ingredient.currentStock) <= Number(ingredient.minStock),
-    }, ['ADMIN', 'STAFF']);
+    await announceStockLevels([ingredient.id]);
 
     return ingredient;
   }
@@ -131,6 +126,10 @@ export class IngredientService {
         include: { supplier: true },
       });
 
+      // An edit can change the stock figure or retire the ingredient outright,
+      // either of which changes what the kitchen can still produce.
+      await syncAvailabilityForIngredients(tx, [id]);
+
       await createAuditLog({
         userId: req.user?.id,
         action: 'UPDATE',
@@ -144,12 +143,7 @@ export class IngredientService {
       return updated;
     });
 
-    eventHub.broadcast('INVENTORY_UPDATED', {
-      id: ingredient.id,
-      name: ingredient.name,
-      currentStock: ingredient.currentStock,
-      isLowStock: Number(ingredient.currentStock) <= Number(ingredient.minStock),
-    }, ['ADMIN', 'STAFF']);
+    await announceStockLevels([ingredient.id]);
 
     return ingredient;
   }
@@ -191,6 +185,8 @@ export class IngredientService {
         },
       });
 
+      await syncAvailabilityForIngredients(tx, [id]);
+
       await createAuditLog({
         userId: req.user?.id,
         action: 'STOCK_ADJUSTMENT',
@@ -204,12 +200,7 @@ export class IngredientService {
       return updated;
     });
 
-    eventHub.broadcast('INVENTORY_UPDATED', {
-      id: result.id,
-      name: result.name,
-      currentStock: result.currentStock,
-      isLowStock: Number(result.currentStock) <= Number(result.minStock),
-    }, ['ADMIN', 'STAFF']);
+    await announceStockLevels([result.id]);
 
     return result;
   }

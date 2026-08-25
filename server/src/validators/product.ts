@@ -9,6 +9,8 @@ export const createProductSchema = z.object({
     imageUrl: z.string().optional().nullable().or(z.literal('')),
     categoryId: z.string().cuid('Invalid category ID'),
     availability: z.enum(['AVAILABLE', 'UNAVAILABLE', 'LIMITED']).default('AVAILABLE'),
+    // When true the stock automation stops managing this item's availability.
+    availabilityLocked: z.boolean().default(false),
     isFeatured: z.boolean().default(false),
     isPopular: z.boolean().default(false),
     sortOrder: z.number().int().default(0),
@@ -23,6 +25,7 @@ export const updateProductSchema = z.object({
     imageUrl: z.string().optional().nullable().or(z.literal('')),
     categoryId: z.string().cuid().optional(),
     availability: z.enum(['AVAILABLE', 'UNAVAILABLE', 'LIMITED']).optional(),
+    availabilityLocked: z.boolean().optional(),
     isFeatured: z.boolean().optional(),
     isPopular: z.boolean().optional(),
     sortOrder: z.number().int().optional(),

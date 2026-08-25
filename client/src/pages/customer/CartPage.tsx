@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Coffee, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react'
 import { useCart } from '@/contexts/CartContext'
+import { SmartImage } from '@/components/SmartImage'
 import { formatCurrency } from '@/utils/lib'
 import Separator from '@/components/home/Separator'
 
@@ -50,18 +51,17 @@ export default function CartPage() {
                   to={`/menu/${entry.product.id}`}
                   className="h-24 w-24 shrink-0 overflow-hidden rounded-sm bg-secondary"
                 >
-                  {entry.product.imageUrl ? (
-                    <img
-                      src={entry.product.imageUrl}
-                      alt={entry.product.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Coffee className="h-8 w-8 text-brand-gold/40" aria-hidden="true" />
-                    </div>
-                  )}
+                  <SmartImage
+                    src={entry.product.imageUrl}
+                    alt={entry.product.name}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                    fallback={
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Coffee className="h-8 w-8 text-brand-gold/40" aria-hidden="true" />
+                      </div>
+                    }
+                  />
                 </Link>
 
                 <div className="min-w-0 flex-1">

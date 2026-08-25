@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { paymentsApi, type PaymentExportRecord } from '@/api/payments'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,10 +15,11 @@ import {
   getPaymentMethodLabel,
   getOrderTypeLabel
 } from '@/utils/lib'
-import { Search, ChevronLeft, ChevronRight, CreditCard, Download, Loader2, FileSpreadsheet } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, CreditCard, Loader2, FileSpreadsheet } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AdminPayments() {
+  const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [methodFilter, setMethodFilter] = useState('')
@@ -40,6 +42,10 @@ export default function AdminPayments() {
   const payments = Array.isArray(data?.data) ? data.data : []
   const pagination = data?.pagination
 
+  // Rendered through the shared label helper so the filter, the table cell and
+  // the CSV all name a method the same way.
+  const PAYMENT_METHODS = ['CASH', 'CARD', 'ONLINE', 'UPI']
+
   const handleExportCsv = async () => {
     try {
       setIsExporting(true)
@@ -52,26 +58,26 @@ export default function AdminPayments() {
       const allRecords: PaymentExportRecord[] = Array.isArray(res.data) ? res.data : []
 
       if (allRecords.length === 0) {
-        toast.info('No hay registros de pagos para exportar con los filtros seleccionados')
+        toast.info(t('adminPayments.exportEmpty'))
         setIsExporting(false)
         return
       }
 
       const headers = [
-        'ID Transacción',
-        'ID Pago',
-        'N° Pedido',
-        'Tipo de Pedido',
-        'Mesa',
-        'Cliente',
-        'Correo Cliente',
-        'Teléfono Cliente',
-        'Monto',
-        'Método de Pago',
-        'Estado',
-        'N° Referencia',
-        'Fecha de Creación',
-        'Fecha de Pago',
+        t('adminPayments.csvTransactionId'),
+        t('adminPayments.csvPaymentId'),
+        t('adminPayments.csvOrderNumber'),
+        t('adminPayments.csvOrderType'),
+        t('adminPayments.csvTable'),
+        t('adminPayments.csvCustomer'),
+        t('adminPayments.csvCustomerEmail'),
+        t('adminPayments.csvCustomerPhone'),
+        t('adminPayments.csvAmount'),
+        t('adminPayments.csvMethod'),
+        t('adminPayments.csvStatus'),
+        t('adminPayments.csvReference'),
+        t('adminPayments.csvCreatedAt'),
+        t('adminPayments.csvPaidAt'),
       ]
 
       const escapeCell = (val: any) => {
@@ -83,10 +89,14 @@ export default function AdminPayments() {
       const rows = allRecords.map((p) => {
         const order = p.order
         const customer = order?.customer
-        const customerName = customer ? `${customer.firstName} ${customer.lastName}`.trim() : 'Cliente General'
+        const customerName = customer
+          ? `${customer.firstName} ${customer.lastName}`.trim()
+          : t('adminPayments.csvGeneralCustomer')
         const customerEmail = customer?.user?.email || '-'
         const customerPhone = customer?.phone || '-'
-        const table = order?.tableNumber ? `Mesa #${order.tableNumber}` : '-'
+        const table = order?.tableNumber
+          ? `${t('staff.tablePrefix')} #${order.tableNumber}`
+          : '-'
         const orderType = order?.type ? getOrderTypeLabel(order.type) : '-'
         const method = getPaymentMethodLabel(p.method)
         const status = getStatusLabel(p.status)
@@ -119,15 +129,15 @@ export default function AdminPayments() {
       const link = document.createElement('a')
       const timestamp = new Date().toISOString().slice(0, 10)
       link.setAttribute('href', url)
-      link.setAttribute('download', `reporte_pagos_cafe_origen_${timestamp}.csv`)
+      link.setAttribute('download', `${t('adminPayments.csvFileName')}_${timestamp}.csv`)
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
-      toast.success(`Se exportaron ${allRecords.length} pagos exitosamente en formato Excel CSV`)
+      toast.success(t('adminPayments.exportSuccess', { count: allRecords.length }))
     } catch (err: any) {
-      toast.error(err?.message || 'Error al exportar los registros de pagos')
+      toast.error(err?.message || t('adminPayments.exportError'))
     } finally {
       setIsExporting(false)
     }
@@ -148,10 +158,10 @@ export default function AdminPayments() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight">
-            Gestión de Pagos & Transacciones
+            {t('adminPayments.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Registro de transacciones, estados de cobro y métodos de pago utilizados.
+            {t('adminPayments.subtitle')}
           </p>
         </div>
 
@@ -166,7 +176,7 @@ export default function AdminPayments() {
           ) : (
             <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           )}
-          <span>{isExporting ? 'Generando CSV...' : 'Descargar Excel CSV'}</span>
+          <span>{isExporting ? t('adminPayments.exporting') : t('adminPayments.exportCsv')}</span>
         </Button>
       </div>
 
@@ -175,7 +185,7 @@ export default function AdminPayments() {
         <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por ID transacción o pedido..."
+            placeholder={t('adminPayments.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value)
@@ -194,11 +204,12 @@ export default function AdminPayments() {
               setPage(1)
             }}
           >
-            <option value="">Todos los Métodos</option>
-            <option value="CASH">Efectivo</option>
-            <option value="CARD">Tarjeta Débito/Crédito</option>
-            <option value="ONLINE">Nequi / Daviplata / En línea</option>
-            <option value="UPI">UPI</option>
+            <option value="">{t('adminPayments.allMethods')}</option>
+            {PAYMENT_METHODS.map((value) => (
+              <option key={value} value={value}>
+                {getPaymentMethodLabel(value)}
+              </option>
+            ))}
           </select>
 
           <Tabs
@@ -210,13 +221,13 @@ export default function AdminPayments() {
           >
             <TabsList className="rounded-xl p-1 bg-secondary/60">
               <TabsTrigger value="all" className="rounded-lg text-xs font-semibold">
-                Todos
+                {t('common.all')}
               </TabsTrigger>
               <TabsTrigger value="PAID" className="rounded-lg text-xs font-semibold text-emerald-700">
-                Pagados
+                {t('adminPayments.tabPaid')}
               </TabsTrigger>
               <TabsTrigger value="PENDING" className="rounded-lg text-xs font-semibold text-amber-700">
-                Pendientes
+                {t('adminPayments.tabPending')}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -228,19 +239,19 @@ export default function AdminPayments() {
         {payments.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-2 text-xs">
             <CreditCard className="w-8 h-8 mx-auto text-muted-foreground stroke-[1.5]" />
-            <p className="font-semibold text-foreground text-sm">No se encontraron pagos</p>
+            <p className="font-semibold text-foreground text-sm">{t('adminPayments.empty')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-secondary/40 border-b border-border/60 text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
-                  <th className="p-4">ID Transacción</th>
-                  <th className="p-4">Pedido / Cliente</th>
-                  <th className="p-4">Monto (COP)</th>
-                  <th className="p-4">Método</th>
-                  <th className="p-4">Fecha</th>
-                  <th className="p-4">Estado</th>
+                  <th className="p-4">{t('adminPayments.colTransaction')}</th>
+                  <th className="p-4">{t('adminPayments.colOrderCustomer')}</th>
+                  <th className="p-4">{t('adminPayments.colAmount')}</th>
+                  <th className="p-4">{t('adminPayments.colMethod')}</th>
+                  <th className="p-4">{t('common.date')}</th>
+                  <th className="p-4">{t('common.status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -255,7 +266,7 @@ export default function AdminPayments() {
                         <div>{p.transactionId || p.id.slice(0, 12)}</div>
                         {p.referenceNumber && (
                           <div className="text-[10px] text-muted-foreground font-sans">
-                            Ref: {p.referenceNumber}
+                            {t('adminPayments.refPrefix', { ref: p.referenceNumber })}
                           </div>
                         )}
                       </td>
@@ -300,7 +311,12 @@ export default function AdminPayments() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4 border-t border-border/60 text-xs text-muted-foreground">
           <p>
-            Página {pagination.page} de {pagination.totalPages} ({pagination.total} pagos)
+            {t('common.pageOf', {
+              page: pagination.page,
+              totalPages: pagination.totalPages,
+              total: pagination.total,
+              unit: t('adminPayments.unit'),
+            })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -311,7 +327,7 @@ export default function AdminPayments() {
               className="rounded-xl"
             >
               <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-              <span>Anterior</span>
+              <span>{t('common.previous')}</span>
             </Button>
             <Button
               variant="outline"
@@ -320,7 +336,7 @@ export default function AdminPayments() {
               disabled={page >= pagination.totalPages}
               className="rounded-xl"
             >
-              <span>Siguiente</span>
+              <span>{t('common.next')}</span>
               <ChevronRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>

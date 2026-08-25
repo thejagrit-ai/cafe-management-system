@@ -8,7 +8,7 @@ import {
   paymentExportQuerySchema,
   updatePaymentStatusSchema,
 } from '../validators/order';
-import { idParamSchema, orderIdParamSchema } from '../validators/auth';
+import { orderIdParamSchema } from '../validators/auth';
 
 const router = Router();
 

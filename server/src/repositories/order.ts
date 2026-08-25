@@ -112,8 +112,13 @@ export class OrderRepository extends BaseRepository<Order, Prisma.OrderCreateInp
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const [totalOrders, totalRevenue, pendingOrders, completedOrders] = await Promise.all([
+      // Cancelled orders are excluded here for the same reason they are
+      // excluded from the revenue sum below: the dashboard divides one by the
+      // other to get the average ticket, and counting cancellations in the
+      // denominator but not the numerator dragged that figure down by however
+      // many orders the café voided that day.
       this.model.count({
-        where: { createdAt: { gte: today, lt: tomorrow } },
+        where: { createdAt: { gte: today, lt: tomorrow }, status: { not: OrderStatus.CANCELLED } },
       }),
       this.model.aggregate({
         where: { createdAt: { gte: today, lt: tomorrow }, status: { not: OrderStatus.CANCELLED } },
@@ -133,6 +138,18 @@ export class OrderRepository extends BaseRepository<Order, Prisma.OrderCreateInp
       pendingOrders,
       completedOrders,
     };
+  }
+
+  /** Orders voided today — surfaced separately so the KPI row can show it. */
+  async getTodaysCancelledCount(): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return this.model.count({
+      where: { createdAt: { gte: today, lt: tomorrow }, status: OrderStatus.CANCELLED },
+    });
   }
 
   async getRevenueByDateRange(dateFrom: Date, dateTo: Date): Promise<number> {

@@ -155,6 +155,11 @@ model Product {
   categoryId      String
   category        Category            @relation(fields: [categoryId], references: [id])
   availability    ProductAvailability @default(AVAILABLE)
+  // Set when a human picks the availability by hand (86'ing an item, or
+  // forcing it back on). The stock automation leaves these products alone so
+  // a sale that touches a shared ingredient cannot silently re-list something
+  // the bar deliberately pulled.
+  availabilityLocked Boolean          @default(false)
   isFeatured      Boolean             @default(false)
   isPopular       Boolean             @default(false)
   sortOrder       Int                 @default(0)

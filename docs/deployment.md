@@ -192,3 +192,7 @@ committed — it records that these migrations target PostgreSQL.
 `CLIENT_URL` must match the frontend origin exactly, including scheme and
 port; it drives the CORS allow-list. Cookies are `secure` over HTTPS, so the
 site must be served over TLS.
+
+---
+
+Developed and owned by **Norynt** — [www.norynt.app](https://www.norynt.app)

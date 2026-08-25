@@ -104,7 +104,7 @@ export function getPaymentMethodLabel(method: string): string {
   const labels: Record<string, { es: string; en: string }> = {
     CASH: { es: 'Efectivo', en: 'Cash' },
     CARD: { es: 'Tarjeta Débito/Crédito', en: 'Card' },
-    NEQUI: { es: 'Nequi / Daviplata', en: 'Nequi / Daviplata' },
+    UPI: { es: 'UPI', en: 'UPI' },
     ONLINE: { es: 'Pago en línea', en: 'Online Payment' },
   }
   const entry = labels[method]

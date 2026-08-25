@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation, Trans } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -16,7 +17,7 @@ import { Plus, Search, Edit2, Trash2, Tag, Coffee } from 'lucide-react'
 import { toast } from 'sonner'
 
 const categorySchema = z.object({
-  name: z.string().min(1, 'El nombre es obligatorio'),
+  name: z.string().min(1, 'validation.nameRequired'),
   description: z.string().optional(),
   sortOrder: z.number().min(0),
   isActive: z.boolean(),
@@ -25,6 +26,7 @@ const categorySchema = z.object({
 type CategoryFormData = z.infer<typeof categorySchema>
 
 export default function AdminCategories() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -51,11 +53,11 @@ export default function AdminCategories() {
     mutationFn: (data: CategoryFormData) => categoriesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
-      toast.success('Categoría creada')
+      toast.success(t('adminCategories.created'))
       setDialogOpen(false)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al guardar categoría'),
+    onError: (err: any) => toast.error(err.message || t('adminCategories.createError')),
   })
 
   const updateMutation = useMutation({
@@ -63,23 +65,23 @@ export default function AdminCategories() {
       categoriesApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
-      toast.success('Categoría actualizada')
+      toast.success(t('adminCategories.updated'))
       setDialogOpen(false)
       setSelectedCategory(null)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al actualizar categoría'),
+    onError: (err: any) => toast.error(err.message || t('adminCategories.updateError')),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => categoriesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
-      toast.success('Categoría eliminada')
+      toast.success(t('adminCategories.deleted'))
       setDeleteDialogOpen(false)
       setSelectedCategory(null)
     },
-    onError: (err: any) => toast.error(err.message || 'Error al eliminar categoría'),
+    onError: (err: any) => toast.error(err.message || t('adminCategories.deleteError')),
   })
 
   const categories = data?.data ?? []
@@ -121,10 +123,10 @@ export default function AdminCategories() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight">
-            Categorías del Menú
+            {t('adminCategories.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Organiza las familias de productos (cafés, postres, panadería, bebidas frías).
+            {t('adminCategories.subtitle')}
           </p>
         </div>
 
@@ -137,7 +139,7 @@ export default function AdminCategories() {
           className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold"
         >
           <Plus className="mr-1.5 h-4 w-4" />
-          <span>Nueva Categoría</span>
+          <span>{t('adminCategories.newCategory')}</span>
         </Button>
       </div>
 
@@ -146,7 +148,7 @@ export default function AdminCategories() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre o descripción..."
+            placeholder={t('adminCategories.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10 rounded-xl text-xs"
@@ -159,19 +161,19 @@ export default function AdminCategories() {
         {categories.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-2 text-xs">
             <Tag className="w-8 h-8 mx-auto text-muted-foreground stroke-[1.5]" />
-            <p className="font-semibold text-foreground text-sm">No hay categorías registradas</p>
+            <p className="font-semibold text-foreground text-sm">{t('adminCategories.empty')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-secondary/40 border-b border-border/60 text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
-                  <th className="p-4">Categoría</th>
-                  <th className="p-4">Descripción</th>
-                  <th className="p-4">Productos vinculados</th>
-                  <th className="p-4">Orden</th>
-                  <th className="p-4">Estado</th>
-                  <th className="p-4 text-right">Acciones</th>
+                  <th className="p-4">{t('adminCategories.colCategory')}</th>
+                  <th className="p-4">{t('adminCategories.colDescription')}</th>
+                  <th className="p-4">{t('adminCategories.colLinkedProducts')}</th>
+                  <th className="p-4">{t('adminCategories.colOrder')}</th>
+                  <th className="p-4">{t('common.status')}</th>
+                  <th className="p-4 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -182,10 +184,10 @@ export default function AdminCategories() {
                       <span>{cat.name}</span>
                     </td>
                     <td className="p-4 text-muted-foreground max-w-xs truncate">
-                      {cat.description || 'Sin descripción'}
+                      {cat.description || t('common.noDescription')}
                     </td>
                     <td className="p-4 font-mono font-medium text-foreground">
-                      {cat._count?.products || 0} items
+                      {t('adminCategories.itemsCount', { count: cat._count?.products || 0 })}
                     </td>
                     <td className="p-4 text-muted-foreground font-mono">{cat.sortOrder}</td>
                     <td className="p-4">
@@ -196,7 +198,7 @@ export default function AdminCategories() {
                             : 'bg-zinc-100 text-zinc-600 text-[10px]'
                         }
                       >
-                        {cat.isActive ? 'Activa' : 'Inactiva'}
+                        {cat.isActive ? t('adminCategories.activeF') : t('adminCategories.inactiveF')}
                       </Badge>
                     </td>
                     <td className="p-4 text-right space-x-1">
@@ -207,7 +209,7 @@ export default function AdminCategories() {
                         className="rounded-lg text-[11px] h-8 px-2.5"
                       >
                         <Edit2 className="w-3 h-3 mr-1" />
-                        <span>Editar</span>
+                        <span>{t('common.edit')}</span>
                       </Button>
                       <Button
                         variant="ghost"
@@ -231,29 +233,29 @@ export default function AdminCategories() {
         <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
-              {selectedCategory ? 'Editar Categoría' : 'Nueva Categoría'}
+              {selectedCategory ? t('adminCategories.editCategory') : t('adminCategories.newCategory')}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-xs">
             <div className="space-y-1">
-              <Label className="text-xs">Nombre de la Categoría</Label>
-              <Input {...register('name')} placeholder="Ej. Cafés de Especialidad" className="h-9 rounded-xl" />
-              {errors.name && <p className="text-rose-500 text-[10px]">{errors.name.message}</p>}
+              <Label className="text-xs">{t('adminCategories.fieldName')}</Label>
+              <Input {...register('name')} placeholder={t('adminCategories.fieldNamePlaceholder')} className="h-9 rounded-xl" />
+              {errors.name && <p className="text-rose-500 text-[10px]">{t(errors.name.message as string)}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Descripción</Label>
+              <Label className="text-xs">{t('adminCategories.colDescription')}</Label>
               <Textarea
                 {...register('description')}
-                placeholder="Breve explicación de los productos de esta familia..."
+                placeholder={t('adminCategories.fieldDescriptionPlaceholder')}
                 className="rounded-xl min-h-[60px]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Orden de Clasificación</Label>
+                <Label className="text-xs">{t('adminCategories.fieldSortOrder')}</Label>
                 <Input
                   type="number"
                   {...register('sortOrder', { valueAsNumber: true })}
@@ -268,17 +270,17 @@ export default function AdminCategories() {
                     {...register('isActive')}
                     className="rounded accent-[#7C4EEE]"
                   />
-                  <span className="text-xs">Categoría Activa</span>
+                  <span className="text-xs">{t('adminCategories.activeToggle')}</span>
                 </label>
               </div>
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="rounded-xl">
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit" size="sm" className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white">
-                Guardar Categoría
+                {t('adminCategories.save')}
               </Button>
             </DialogFooter>
           </form>
@@ -290,15 +292,19 @@ export default function AdminCategories() {
         <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg text-rose-600">
-              ¿Eliminar categoría?
+              {t('adminCategories.deleteTitle')}
             </DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground">
-            ¿Confirmas la eliminación de <strong className="text-foreground">{selectedCategory?.name}</strong>?
+            <Trans
+              i18nKey="common.confirmDeleteNamed"
+              values={{ name: selectedCategory?.name ?? '' }}
+              components={{ strong: <strong className="text-foreground" /> }}
+            />
           </p>
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" size="sm" onClick={() => setDeleteDialogOpen(false)} className="rounded-xl">
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -307,7 +313,7 @@ export default function AdminCategories() {
               onClick={() => selectedCategory && deleteMutation.mutate(selectedCategory.id)}
               className="rounded-xl"
             >
-              Eliminar
+              {t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

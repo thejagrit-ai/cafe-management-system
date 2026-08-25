@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { ordersApi } from '@/api/orders'
 import { customersApi } from '@/api/customers'
 import { settingsApi } from '@/api/settings'
+import { loyaltyApi } from '@/api/loyalty'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,16 +28,19 @@ import {
   UtensilsCrossed,
   Lock,
   Sparkles,
-  ChevronRight,
   Check
 } from 'lucide-react'
 import { toast } from 'sonner'
+
+/** Fallback conversion rate, used only while the loyalty balance is loading. */
+const DEFAULT_POINT_VALUE = 10
 
 export default function CheckoutPage() {
   const { t } = useTranslation()
   const { items, subtotal, clearCart } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const savedTable = typeof window !== 'undefined' ? sessionStorage.getItem('cafe_active_table') : null
   const [tableNumber, setTableNumber] = useState<string>(savedTable || '1')
@@ -76,6 +80,13 @@ export default function CheckoutPage() {
     queryFn: () => settingsApi.get()
   })
 
+  const { data: loyaltyData } = useQuery({
+    queryKey: ['my-loyalty'],
+    queryFn: () => loyaltyApi.getMyLoyalty(),
+    enabled: !!user?.customer?.id,
+    retry: false
+  })
+
   const settings = settingsData?.data
   const addresses = addressesData?.data || []
   const [selectedAddressId, setSelectedAddressId] = useState<string>(addresses[0]?.id || '')
@@ -83,13 +94,35 @@ export default function CheckoutPage() {
   const taxRate = Number(settings?.taxRate || 8)
   const taxAmount = subtotal * (taxRate / 100)
   const deliveryFee = orderType === 'DELIVERY' ? Number(settings?.deliveryFee || 5000) : 0
-  const total = subtotal + taxAmount + deliveryFee
+
+  // Loyalty redemption. Mirrors the server's rules so the figure shown here is
+  // the figure that gets charged: points are worth a fixed amount each and
+  // cannot discount more than the goods themselves.
+  const loyalty = loyaltyData?.data
+  // The server owns the conversion rate; `monetaryValue` is the same balance
+  // already priced in currency, so the per-point value falls out of it and the
+  // client never keeps a second copy of the rule that could drift.
+  const pointValue =
+    loyalty && loyalty.points > 0 ? loyalty.monetaryValue / loyalty.points : DEFAULT_POINT_VALUE
+  const pointsBalance = loyalty?.points ?? 0
+  const maxRedeemablePoints = Math.max(
+    Math.min(pointsBalance, Math.floor(subtotal / pointValue)),
+    0
+  )
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false)
+  const pointsRedeemed = useLoyaltyPoints ? maxRedeemablePoints : 0
+  const loyaltyDiscount = pointsRedeemed * pointValue
+
+  const total = Math.max(subtotal + taxAmount + deliveryFee - loyaltyDiscount, 0)
 
   const createOrderMutation = useMutation({
     mutationFn: (data: any) => ordersApi.create(data),
     onSuccess: (response) => {
       toast.success(t('checkout.orderSuccessTitle'))
       clearCart()
+      // The balance just changed if points were spent, and points are earned
+      // when the order completes - either way the cached figure is stale.
+      queryClient.invalidateQueries({ queryKey: ['my-loyalty'] })
       navigate(`/order-confirmation/${response.data?.orderNumber}`)
     },
     onError: (error: any) => {
@@ -106,17 +139,17 @@ export default function CheckoutPage() {
 
   const handleSubmit = () => {
     if (items.length === 0) {
-      toast.error('Tu carrito está vacío')
+      toast.error(t('checkout.cartEmptyError'))
       return
     }
 
     if (orderType === 'DINE_IN' && (!tableNumber || parseInt(tableNumber, 10) <= 0)) {
-      toast.error('Por favor ingresa un número de mesa válido')
+      toast.error(t('checkout.invalidTableError'))
       return
     }
 
     if (orderType === 'DELIVERY' && !selectedAddressId && !customStreet.trim()) {
-      toast.error('Por favor ingresa o selecciona una dirección de entrega')
+      toast.error(t('checkout.addressRequiredError'))
       return
     }
 
@@ -137,6 +170,7 @@ export default function CheckoutPage() {
       })),
       notes: finalNotes || undefined,
       addressId: orderType === 'DELIVERY' && selectedAddressId ? selectedAddressId : undefined,
+      redeemPoints: pointsRedeemed > 0 ? pointsRedeemed : undefined,
       paymentMethod: paymentMethod,
       paymentDetails: (paymentMethod === 'CARD' || paymentMethod === 'ONLINE') ? {
         cardNumber: cardNumber.replace(/\s/g, ''),
@@ -156,9 +190,9 @@ export default function CheckoutPage() {
           <Coffee className="w-10 h-10 stroke-[1.5] text-[#7C4EEE]" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-serif font-bold text-foreground">Tu carrito está vacío</h2>
+          <h2 className="text-2xl font-serif font-bold text-foreground">{t('cart.empty')}</h2>
           <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-            Explora nuestro menú de cafés de especialidad, postres y delicias antes de ordenar.
+            {t('checkout.emptyCartDesc')}
           </p>
         </div>
         <Link to="/menu">
@@ -179,26 +213,26 @@ export default function CheckoutPage() {
           className="inline-flex items-center text-xs font-semibold text-muted-foreground hover:text-[#7C4EEE] transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-1.5" />
-          <span>Volver al Carrito</span>
+          <span>{t('checkout.backToCart')}</span>
         </Link>
 
         {/* Page Title Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-border/60 pb-5">
           <div>
             <h1 className="text-3xl sm:text-4xl font-serif font-bold text-foreground tracking-tight">
-              Finalizar Pedido
+              {t('checkout.pageTitle')}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-sans">
               {orderType === 'DINE_IN'
-                ? `Servicio a mesa · Mesa #${tableNumber} confirmada`
-                : 'Confirmación express con despacho inmediato'}
+                ? t('checkout.dineInSubtitle', { table: tableNumber })
+                : t('checkout.expressSubtitle')}
             </p>
           </div>
 
           {orderType === 'DINE_IN' && (
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#7C4EEE]/10 border border-[#7C4EEE]/20 text-[#7C4EEE] text-xs font-bold font-sans">
               <UtensilsCrossed className="w-3.5 h-3.5" />
-              <span>Mesa #{tableNumber}</span>
+              <span>{t('checkout.tableBadge', { table: tableNumber })}</span>
             </div>
           )}
         </div>
@@ -215,12 +249,12 @@ export default function CheckoutPage() {
                     1
                   </div>
                   <h2 className="font-serif font-bold text-base text-foreground">
-                    Datos del Cliente
+                    {t('checkout.stepCustomer')}
                   </h2>
                 </div>
                 {!user && (
                   <span className="text-[11px] text-muted-foreground">
-                    Pedido como Invitado
+                    {t('checkout.guestOrder')}
                   </span>
                 )}
               </div>
@@ -228,14 +262,14 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
                 <div className="space-y-1.5">
                   <label className="font-semibold text-muted-foreground">
-                    Nombre (Opcional)
+                    {t('checkout.nameOptional')}
                   </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="Tu nombre (opcional)"
+                      placeholder={t('checkout.namePlaceholder')}
                       className="pl-10 h-11 rounded-xl bg-secondary/30 text-xs border-border/80"
                     />
                   </div>
@@ -243,7 +277,7 @@ export default function CheckoutPage() {
 
                 <div className="space-y-1.5">
                   <label className="font-semibold text-muted-foreground">
-                    Teléfono / WhatsApp
+                    {t('checkout.phoneLabel')}
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -258,7 +292,7 @@ export default function CheckoutPage() {
 
                 <div className="sm:col-span-2 space-y-1.5">
                   <label className="font-semibold text-muted-foreground">
-                    Correo Electrónico (para recibo digital)
+                    {t('checkout.emailLabel')}
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -280,7 +314,7 @@ export default function CheckoutPage() {
                   2
                 </div>
                 <h2 className="font-serif font-bold text-base text-foreground">
-                  Tipo de Entrega
+                  {t('checkout.stepFulfilment')}
                 </h2>
               </div>
 
@@ -300,8 +334,8 @@ export default function CheckoutPage() {
                     <UtensilsCrossed className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-xs text-foreground">En Mesa</h4>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Servicio a tu mesa</p>
+                    <h4 className="font-bold text-xs text-foreground">{t('checkout.dineIn')}</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t('checkout.dineInDesc')}</p>
                   </div>
                 </button>
 
@@ -319,8 +353,8 @@ export default function CheckoutPage() {
                     <Store className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-xs text-foreground">Para Llevar</h4>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Retiro en barra</p>
+                    <h4 className="font-bold text-xs text-foreground">{t('checkout.pickup')}</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t('checkout.pickupDesc')}</p>
                   </div>
                 </button>
 
@@ -338,8 +372,8 @@ export default function CheckoutPage() {
                     <Truck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-xs text-foreground">A Domicilio</h4>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Directo a tu puerta</p>
+                    <h4 className="font-bold text-xs text-foreground">{t('checkout.delivery')}</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t('checkout.deliveryDesc')}</p>
                   </div>
                 </button>
               </div>
@@ -355,14 +389,14 @@ export default function CheckoutPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-xs sm:text-sm text-foreground">
-                            Mesa #{tableNumber} Confirmada
+                            {t('checkout.tableConfirmed', { table: tableNumber })}
                           </h4>
                           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                            QR Activo
+                            {t('checkout.qrActive')}
                           </span>
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5 font-sans">
-                          Los baristas llevarán tu pedido directamente a la mesa #{tableNumber}.
+                          {t('checkout.tableNote', { table: tableNumber })}
                         </p>
                       </div>
                     </div>
@@ -372,7 +406,7 @@ export default function CheckoutPage() {
                       onClick={() => setShowChangeTable(!showChangeTable)}
                       className="text-xs font-semibold text-[#7C4EEE] hover:underline px-2 py-1 shrink-0"
                     >
-                      {showChangeTable ? 'Ocultar' : 'Cambiar'}
+                      {showChangeTable ? t('checkout.hide') : t('checkout.change')}
                     </button>
                   </div>
 
@@ -380,7 +414,7 @@ export default function CheckoutPage() {
                   {showChangeTable && (
                     <div className="mt-3 p-4 rounded-xl bg-secondary/30 border border-border/70 space-y-2.5 animate-fade-in text-xs">
                       <label className="font-semibold text-muted-foreground">
-                        Ingresa o selecciona otro número de mesa:
+                        {t('checkout.pickAnotherTable')}
                       </label>
                       <div className="flex items-center gap-2">
                         <Input
@@ -407,7 +441,7 @@ export default function CheckoutPage() {
                                   : "border-border/70 bg-card hover:border-[#7C4EEE]"
                               )}
                             >
-                              Mesa {num}
+                              {t('checkout.tableOption', { number: num })}
                             </button>
                           ))}
                         </div>
@@ -422,7 +456,7 @@ export default function CheckoutPage() {
                 <div className="pt-2 space-y-3 animate-fade-in font-sans text-xs">
                   <label className="font-semibold text-muted-foreground flex items-center gap-1.5">
                     <Truck className="w-3.5 h-3.5 text-[#7C4EEE]" />
-                    <span>Dirección de Entrega</span>
+                    <span>{t('checkout.deliveryAddress')}</span>
                   </label>
 
                   {user && addresses.length > 0 ? (
@@ -453,20 +487,20 @@ export default function CheckoutPage() {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="sm:col-span-2 space-y-1">
-                        <label className="font-medium text-muted-foreground">Calle / Carrera / Apto *</label>
+                        <label className="font-medium text-muted-foreground">{t('checkout.streetLabel')}</label>
                         <Input
                           value={customStreet}
                           onChange={(e) => setCustomStreet(e.target.value)}
-                          placeholder="Ej. Calle 93 # 12-45, Apto 402"
+                          placeholder={t('checkout.streetPlaceholder')}
                           className="h-10 rounded-xl bg-secondary/30"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="font-medium text-muted-foreground">Ciudad *</label>
+                        <label className="font-medium text-muted-foreground">{t('checkout.cityLabel')}</label>
                         <Input
                           value={customCity}
                           onChange={(e) => setCustomCity(e.target.value)}
-                          placeholder="Bogotá, Medellín, etc."
+                          placeholder={t('checkout.cityPlaceholder')}
                           className="h-10 rounded-xl bg-secondary/30"
                         />
                       </div>
@@ -484,14 +518,14 @@ export default function CheckoutPage() {
                     3
                   </div>
                   <h2 className="font-serif font-bold text-base text-foreground">
-                    Método de Pago
+                    {t('checkout.stepPayment')}
                   </h2>
                 </div>
 
                 {orderType !== 'DINE_IN' && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
                     <Lock className="w-3 h-3" />
-                    <span>Pago Seguro Anticipado</span>
+                    <span>{t('checkout.securePrepaid')}</span>
                   </span>
                 )}
               </div>
@@ -518,8 +552,8 @@ export default function CheckoutPage() {
                     )}
                   </div>
                   <div>
-                    <h4 className="font-bold text-xs text-foreground">Tarjeta Débito / Crédito</h4>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">Visa, Mastercard, Amex</p>
+                    <h4 className="font-bold text-xs text-foreground">{t('checkout.payCard')}</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{t('checkout.payCardDesc')}</p>
                   </div>
                 </button>
 
@@ -543,8 +577,8 @@ export default function CheckoutPage() {
                     )}
                   </div>
                   <div>
-                    <h4 className="font-bold text-xs text-foreground">PSE / Nequi / Daviplata</h4>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">Transferencia instantánea</p>
+                    <h4 className="font-bold text-xs text-foreground">{t('checkout.payOnline')}</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{t('checkout.payOnlineDesc')}</p>
                   </div>
                 </button>
 
@@ -569,16 +603,16 @@ export default function CheckoutPage() {
                       )}
                     </div>
                     <div>
-                      <h4 className="font-bold text-xs text-foreground">Pagar en Mesa / Caja</h4>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">Efectivo al terminar</p>
+                      <h4 className="font-bold text-xs text-foreground">{t('checkout.payCash')}</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{t('checkout.payCashDesc')}</p>
                     </div>
                   </button>
                 ) : (
                   <div className="p-4 rounded-xl border border-dashed border-border/80 bg-secondary/30 flex flex-col justify-between opacity-50 cursor-not-allowed">
                     <Banknote className="w-5 h-5 mb-3 text-muted-foreground" />
                     <div>
-                      <h4 className="font-bold text-xs text-muted-foreground line-through">Efectivo</h4>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Solo pago anticipado para llevar</p>
+                      <h4 className="font-bold text-xs text-muted-foreground line-through">{t('checkout.cashLabel')}</h4>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{t('checkout.cashUnavailable')}</p>
                     </div>
                   </div>
                 )}
@@ -590,7 +624,7 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between text-muted-foreground">
                     <span className="font-semibold flex items-center gap-1.5 text-[11px]">
                       <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Pasarela Segura Encriptada 256-bit</span>
+                      <span>{t('checkout.secureGateway')}</span>
                     </span>
                     <div className="flex gap-1.5 font-mono text-[10px] font-bold">
                       <span className="px-1.5 py-0.5 rounded bg-card border">VISA</span>
@@ -600,7 +634,7 @@ export default function CheckoutPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div className="sm:col-span-2 space-y-1">
-                      <label className="font-semibold text-muted-foreground">Número de Tarjeta</label>
+                      <label className="font-semibold text-muted-foreground">{t('checkout.cardNumber')}</label>
                       <Input
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value)}
@@ -609,26 +643,26 @@ export default function CheckoutPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="font-semibold text-muted-foreground">Nombre del Titular</label>
+                      <label className="font-semibold text-muted-foreground">{t('checkout.cardHolder')}</label>
                       <Input
                         value={cardHolder}
                         onChange={(e) => setCardHolder(e.target.value)}
-                        placeholder="Como figura en el plástico"
+                        placeholder={t('checkout.cardHolderPlaceholder')}
                         className="h-10 rounded-xl bg-card text-xs"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <label className="font-semibold text-muted-foreground">Expiración</label>
+                        <label className="font-semibold text-muted-foreground">{t('checkout.cardExpiry')}</label>
                         <Input
                           value={cardExpiry}
                           onChange={(e) => setCardExpiry(e.target.value)}
-                          placeholder="MM/AA"
+                          placeholder={t('checkout.cardExpiryPlaceholder')}
                           className="h-10 rounded-xl text-center font-mono bg-card text-xs"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="font-semibold text-muted-foreground">CVC / CVV</label>
+                        <label className="font-semibold text-muted-foreground">{t('checkout.cardCvc')}</label>
                         <Input
                           value={cardCvv}
                           onChange={(e) => setCardCvv(e.target.value)}
@@ -647,10 +681,10 @@ export default function CheckoutPage() {
             {/* Step 4: Special Instructions */}
             <div className="p-6 rounded-2xl border border-border/70 bg-card shadow-xs space-y-3 font-sans">
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Notas / Instrucciones para el Barista
+                {t('checkout.notesLabel')}
               </label>
               <Textarea
-                placeholder="Ej. Leche deslactosada, sin azúcar, extra caliente..."
+                placeholder={t('checkout.notesPlaceholder')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="rounded-xl resize-none text-xs bg-secondary/30 min-h-[70px] border-border/80"
@@ -663,10 +697,12 @@ export default function CheckoutPage() {
             <div className="p-6 rounded-2xl border border-border/70 bg-card space-y-6 sticky top-24 shadow-xs">
               <div className="flex items-center justify-between border-b border-border/60 pb-3">
                 <h3 className="font-serif font-bold text-lg text-foreground">
-                  Resumen de la Orden
+                  {t('checkout.orderSummary')}
                 </h3>
                 <span className="text-xs font-bold text-[#7C4EEE] bg-[#7C4EEE]/10 px-2 py-0.5 rounded-md font-sans">
-                  {items.reduce((sum, item) => sum + item.quantity, 0)} items
+                  {t('checkout.itemsBadge', {
+                    count: items.reduce((sum, item) => sum + item.quantity, 0),
+                  })}
                 </span>
               </div>
 
@@ -692,29 +728,73 @@ export default function CheckoutPage() {
               {/* Totals Breakdown */}
               <div className="space-y-2.5 pt-3 border-t border-border/60 text-xs font-sans">
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Subtotal</span>
+                  <span>{t('common.subtotal')}</span>
                   <span className="text-foreground font-medium">{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Impuesto ({taxRate}%)</span>
+                  <span>{t('checkout.taxLine', { rate: taxRate })}</span>
                   <span className="text-foreground font-medium">{formatCurrency(taxAmount)}</span>
                 </div>
                 {orderType === 'DELIVERY' && (
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Costo de Domicilio</span>
+                    <span>{t('checkout.deliveryLine')}</span>
                     <span className="text-foreground font-medium">{formatCurrency(deliveryFee)}</span>
                   </div>
                 )}
+
+                {pointsRedeemed > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span>{t('checkout.loyaltyLine', { points: pointsRedeemed })}</span>
+                    <span>-{formatCurrency(loyaltyDiscount)}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between text-sm font-bold text-foreground pt-3 border-t border-border/60 items-baseline">
-                  <span className="font-serif text-base">Total a Pagar</span>
+                  <span className="font-serif text-base">{t('checkout.totalToPay')}</span>
                   <span className="text-[#7C4EEE] font-sans text-xl font-bold">{formatCurrency(total)}</span>
                 </div>
               </div>
 
+              {/* Loyalty redemption. Only shown to a signed-in customer who has
+                  enough points to actually take something off this bill. */}
+              {!!user?.customer?.id && pointsBalance > 0 && (
+                <label
+                  className={cn(
+                    'flex items-start gap-3 p-3 rounded-xl border text-xs transition-colors',
+                    maxRedeemablePoints > 0
+                      ? 'border-amber-500/30 bg-amber-500/5 cursor-pointer hover:bg-amber-500/10'
+                      : 'border-border/60 bg-secondary/30 cursor-not-allowed opacity-70'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={useLoyaltyPoints && maxRedeemablePoints > 0}
+                    disabled={maxRedeemablePoints === 0}
+                    onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
+                    className="mt-0.5 rounded accent-amber-500 w-4 h-4 shrink-0 disabled:cursor-not-allowed"
+                  />
+                  <span className="space-y-0.5">
+                    <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      {t('checkout.useLoyaltyPoints')}
+                    </span>
+                    <span className="block text-muted-foreground">
+                      {maxRedeemablePoints > 0
+                        ? t('checkout.loyaltyAvailable', {
+                            balance: pointsBalance,
+                            applied: maxRedeemablePoints,
+                            amount: formatCurrency(maxRedeemablePoints * pointValue),
+                          })
+                        : t('checkout.loyaltyNotEnough', { balance: pointsBalance })}
+                    </span>
+                  </span>
+                </label>
+              )}
+
               {/* Quality Guarantee Pill */}
               <div className="flex items-center gap-2.5 p-3 rounded-xl bg-secondary/40 text-[11px] text-muted-foreground font-sans">
                 <ShieldCheck className="w-4 h-4 text-[#7C4EEE] shrink-0" />
-                <span>Garantía Origin Coffee · Preparación en vivo</span>
+                <span>{t('checkout.guarantee')}</span>
               </div>
 
               {/* Submit CTA Button */}
@@ -725,14 +805,14 @@ export default function CheckoutPage() {
                 className="w-full h-12 rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all"
               >
                 {createOrderMutation.isPending ? (
-                  <span>Enviando comanda a cocina...</span>
+                  <span>{t('checkout.sending')}</span>
                 ) : (
                   <>
                     <CheckCircle2 className="w-4 h-4" />
                     <span>
                       {orderType === 'DINE_IN' && paymentMethod === 'CASH'
-                        ? `Confirmar Pedido en Mesa #${tableNumber}`
-                        : `Pagar y Confirmar (${formatCurrency(total)})`}
+                        ? t('checkout.confirmAtTable', { table: tableNumber })
+                        : t('checkout.payAndConfirm', { total: formatCurrency(total) })}
                     </span>
                   </>
                 )}

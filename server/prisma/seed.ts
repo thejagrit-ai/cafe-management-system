@@ -33,8 +33,38 @@ async function clean() {
   await prisma.auditLog.deleteMany();
 }
 
+/**
+ * Whether this database already holds real content.
+ *
+ * `clean()` truncates every table, and the Render build command runs this
+ * seed on every deploy - so each push to main was erasing the cafe's live
+ * orders, customers, payments and audit history and replacing them with demo
+ * rows. A database that already has data is now left alone unless the
+ * operator explicitly asks for a reset with SEED_FORCE=true.
+ */
+async function alreadyPopulated(): Promise<boolean> {
+  const [users, products, orders] = await Promise.all([
+    prisma.user.count(),
+    prisma.product.count(),
+    prisma.order.count(),
+  ]);
+  return users > 0 || products > 0 || orders > 0;
+}
+
 async function main() {
-  console.log('🌱 Cleaning old data and re-seeding database...');
+  const force = process.env.SEED_FORCE === 'true';
+
+  if (!force && (await alreadyPopulated())) {
+    console.log('Database already contains data - seed skipped (nothing was deleted).');
+    console.log('Re-run with SEED_FORCE=true to wipe it and reseed from scratch.');
+    return;
+  }
+
+  if (force) {
+    console.log('SEED_FORCE=true - erasing all existing data before reseeding.');
+  }
+
+  console.log('Seeding database...');
 
   await clean();
 
@@ -108,7 +138,7 @@ async function main() {
         name: 'Hot Coffee',
         description: 'Artisan freshly brewed espresso & steamed milk creations',
         sortOrder: 1,
-        imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/categories/hot-coffee.jpg',
       },
     }),
     prisma.category.create({
@@ -116,7 +146,7 @@ async function main() {
         name: 'Cold Coffee & Brews',
         description: 'Slow-steeped cold brews, iced lattes & refreshing blends',
         sortOrder: 2,
-        imageUrl: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/categories/cold-coffee.jpg',
       },
     }),
     prisma.category.create({
@@ -124,7 +154,7 @@ async function main() {
         name: 'Pure Espresso',
         description: 'Single-origin double shots, macchiatos & ristrettos',
         sortOrder: 3,
-        imageUrl: 'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/categories/espresso.jpg',
       },
     }),
     prisma.category.create({
@@ -132,7 +162,7 @@ async function main() {
         name: 'Artisan Tea & Matcha',
         description: 'Ceremonial grade matcha, chai spice & organic infusions',
         sortOrder: 4,
-        imageUrl: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/categories/tea.jpg',
       },
     }),
     prisma.category.create({
@@ -140,7 +170,7 @@ async function main() {
         name: 'Bakery & Pastries',
         description: 'Freshly baked French butter croissants, muffins & tarts',
         sortOrder: 5,
-        imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/categories/pastries.jpg',
       },
     }),
     prisma.category.create({
@@ -148,7 +178,7 @@ async function main() {
         name: 'Gourmet Sandwiches',
         description: 'Artisan sourdough paninis, avocado toast & baguettes',
         sortOrder: 6,
-        imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/categories/sandwiches.jpg',
       },
     }),
     prisma.category.create({
@@ -156,7 +186,7 @@ async function main() {
         name: 'Fresh Smoothies',
         description: '100% natural organic fruit & superfood smoothie bowls',
         sortOrder: 7,
-        imageUrl: 'https://images.unsplash.com/photo-1502741224143-90386d7f8c82?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/categories/smoothies.jpg',
       },
     }),
     prisma.category.create({
@@ -164,7 +194,7 @@ async function main() {
         name: 'Chef Specials',
         description: 'Seasonal specials, pour-overs & signature roastery drinks',
         sortOrder: 8,
-        imageUrl: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/categories/specials.jpg',
       },
     }),
   ]);
@@ -246,7 +276,7 @@ async function main() {
         description: 'Double espresso poured over velvety steamed microfoam milk with silky finish.',
         price: 4.75,
         categoryId: categories[0].id,
-        imageUrl: 'https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/vanilla-latte.jpg',
         isFeatured: true,
         isPopular: true,
       },
@@ -257,7 +287,7 @@ async function main() {
         description: 'Rich dark roast espresso layered with equal parts steamed milk and airy milk foam dusted with cocoa.',
         price: 4.50,
         categoryId: categories[0].id,
-        imageUrl: 'https://images.unsplash.com/photo-1534778101976-62847782c213?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/classic-cappuccino.jpg',
         isFeatured: true,
         isPopular: true,
       },
@@ -268,7 +298,7 @@ async function main() {
         description: 'Smooth double espresso infused with pure Madagascar vanilla extract and steamed whole milk.',
         price: 5.25,
         categoryId: categories[0].id,
-        imageUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/caramel-macchiato.jpg',
         isPopular: true,
       },
     }),
@@ -278,7 +308,7 @@ async function main() {
         description: 'Rich Belgian dark chocolate ganache blended with double espresso and topped with whipped cream.',
         price: 5.75,
         categoryId: categories[0].id,
-        imageUrl: 'https://images.unsplash.com/photo-1607681034540-2c46cc71896d?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/mocha-delight.jpg',
         isFeatured: true,
       },
     }),
@@ -290,7 +320,7 @@ async function main() {
         description: 'Single-origin Colombian beans slow steeped for 24 hours in mountain spring water over ice.',
         price: 4.95,
         categoryId: categories[1].id,
-        imageUrl: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/cold-brew.jpg',
         isFeatured: true,
         isPopular: true,
       },
@@ -301,7 +331,7 @@ async function main() {
         description: 'Layered iced milk, rich vanilla, double espresso float and house salted caramel drizzle.',
         price: 5.50,
         categoryId: categories[1].id,
-        imageUrl: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/iced-caramel-latte.jpg',
         isFeatured: true,
         isPopular: true,
       },
@@ -312,7 +342,7 @@ async function main() {
         description: 'Nitrogen-infused velvety cold brew served cold on tap with sweet vanilla cream.',
         price: 5.95,
         categoryId: categories[1].id,
-        imageUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/maple-pecan-cold-brew.jpg',
       },
     }),
 
@@ -323,7 +353,7 @@ async function main() {
         description: 'Double ristretto shot extracted at 9 bars of pressure with thick hazelnut crema.',
         price: 3.50,
         categoryId: categories[2].id,
-        imageUrl: 'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/double-espresso.jpg',
         isPopular: true,
       },
     }),
@@ -333,7 +363,7 @@ async function main() {
         description: 'Equal parts bold espresso cut with warm steamed milk to reduce acidity.',
         price: 3.95,
         categoryId: categories[2].id,
-        imageUrl: 'https://images.unsplash.com/photo-1585494156145-1c60a4fe9d2b?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/espresso-macchiato.jpg',
         isFeatured: true,
       },
     }),
@@ -343,7 +373,7 @@ async function main() {
         description: 'Intense espresso served with a twist of fresh candied lemon peel.',
         price: 3.75,
         categoryId: categories[2].id,
-        imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/single-espresso.jpg',
       },
     }),
 
@@ -354,7 +384,7 @@ async function main() {
         description: 'First-harvest Japanese Uji matcha whisked with warm oat milk and organic agave.',
         price: 5.50,
         categoryId: categories[3].id,
-        imageUrl: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/green-tea-latte.jpg',
         isFeatured: true,
         isPopular: true,
       },
@@ -365,7 +395,7 @@ async function main() {
         description: 'Slow-simmered cinnamon, cardamom, ginger, and black tea with steamed milk.',
         price: 5.00,
         categoryId: categories[3].id,
-        imageUrl: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/chai-tea-latte.jpg',
         isPopular: true,
       },
     }),
@@ -375,7 +405,7 @@ async function main() {
         description: 'Fragrant bergamot black tea infusion served with organic honey and lemon.',
         price: 4.00,
         categoryId: categories[3].id,
-        imageUrl: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/english-breakfast-tea.jpg',
       },
     }),
 
@@ -386,7 +416,7 @@ async function main() {
         description: 'Freshly baked flaky all-butter croissant with honeycomb interior and golden crust.',
         price: 3.95,
         categoryId: categories[4].id,
-        imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/butter-croissant.jpg',
         isFeatured: true,
         isPopular: true,
       },
@@ -397,7 +427,7 @@ async function main() {
         description: 'Moist vanilla bakery muffin loaded with wild blueberries and sliced roasted almonds.',
         price: 4.25,
         categoryId: categories[4].id,
-        imageUrl: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/blueberry-muffin.jpg',
         isPopular: true,
       },
     }),
@@ -407,7 +437,7 @@ async function main() {
         description: 'Warm, chewy soft-baked cookie with chunks of melted dark and milk chocolate.',
         price: 3.25,
         categoryId: categories[4].id,
-        imageUrl: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/chocolate-chip-cookie.jpg',
       },
     }),
 
@@ -418,7 +448,7 @@ async function main() {
         description: 'Crushed ripe avocado, cherry tomatoes, micro-greens, chili flakes on toasted sourdough.',
         price: 7.95,
         categoryId: categories[5].id,
-        imageUrl: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/avocado-toast.jpg',
         isFeatured: true,
         isPopular: true,
       },
@@ -429,7 +459,7 @@ async function main() {
         description: 'Thinly sliced smoked turkey, crispy bacon, aged provolone, pesto on pressed ciabatta.',
         price: 9.50,
         categoryId: categories[5].id,
-        imageUrl: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/turkey-club-sandwich.jpg',
         isPopular: true,
       },
     }),
@@ -439,7 +469,7 @@ async function main() {
         description: 'Fresh buffalo mozzarella, heirloom tomatoes, fresh basil and balsamic reduction glaze.',
         price: 8.50,
         categoryId: categories[5].id,
-        imageUrl: 'https://images.unsplash.com/photo-1509722747041-616f39b57569?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/turkey-club-sandwich.jpg',
       },
     }),
 
@@ -450,7 +480,7 @@ async function main() {
         description: 'Organic Amazon acai, fresh strawberries, wild blueberries, banana and almond milk.',
         price: 6.50,
         categoryId: categories[6].id,
-        imageUrl: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/strawberry-banana-smoothie.jpg',
         isFeatured: true,
         isPopular: true,
       },
@@ -461,7 +491,7 @@ async function main() {
         description: 'Golden mango, passionfruit puree, coconut milk, topped with chia seeds and granola.',
         price: 6.75,
         categoryId: categories[6].id,
-        imageUrl: 'https://images.unsplash.com/photo-1502741224143-90386d7f8c82?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/mango-tropical-smoothie.jpg',
       },
     }),
 
@@ -472,7 +502,7 @@ async function main() {
         description: 'Real pumpkin puree, autumn spices, espresso, warm milk and cinnamon stick.',
         price: 6.25,
         categoryId: categories[7].id,
-        imageUrl: 'https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/pumpkin-spice-latte.jpg',
         isFeatured: true,
       },
     }),
@@ -482,7 +512,7 @@ async function main() {
         description: 'Single-estate Panama Geisha coffee hand-brewed with floral jasmine notes and bergamot.',
         price: 7.50,
         categoryId: categories[7].id,
-        imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=800&auto=format&fit=crop&q=80',
+        imageUrl: '/assets/products/americano.jpg',
         isFeatured: true,
       },
     }),

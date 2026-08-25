@@ -12,6 +12,8 @@ export const createOrderSchema = z.object({
     })).min(1, 'At least one item is required'),
     notes: z.string().optional(),
     addressId: z.string().cuid().optional(),
+    // Loyalty points the customer wants to spend on this order.
+    redeemPoints: z.number().int().min(0).optional(),
     paymentMethod: z.enum(['CASH', 'CARD', 'UPI', 'ONLINE']).optional(),
     paymentDetails: z.object({
       cardNumber: z.string().optional(),

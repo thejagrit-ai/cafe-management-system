@@ -6,6 +6,7 @@ import { ArrowLeft, Coffee, Plus, Minus, Clock, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { productsApi } from '@/api/products'
 import { useCart } from '@/contexts/CartContext'
+import { SmartImage } from '@/components/SmartImage'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency, cn } from '@/utils/lib'
 
@@ -77,23 +78,22 @@ export default function ProductDetailPage() {
       <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
         {/* Image */}
         <div className="relative aspect-square overflow-hidden rounded-sm bg-secondary">
-          {product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div
-              className="flex h-full w-full items-center justify-center"
-              style={{
-                backgroundImage:
-                  'radial-gradient(ellipse at 50% 35%, rgba(199,161,122,0.25) 0%, transparent 65%)',
-              }}
-            >
-              <Coffee className="h-28 w-28 text-brand-gold/35" aria-hidden="true" />
-            </div>
-          )}
+          <SmartImage
+            src={product.imageUrl}
+            alt={product.name}
+            className="h-full w-full object-cover"
+            fallback={
+              <div
+                className="flex h-full w-full items-center justify-center"
+                style={{
+                  backgroundImage:
+                    'radial-gradient(ellipse at 50% 35%, rgba(199,161,122,0.25) 0%, transparent 65%)',
+                }}
+              >
+                <Coffee className="h-28 w-28 text-brand-gold/35" aria-hidden="true" />
+              </div>
+            }
+          />
 
           {(isUnavailable || isLimited) && (
             <span

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Home, Coffee, ShoppingBag, Sparkles, User } from 'lucide-react'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -7,6 +8,7 @@ import { LoyaltyModal } from '@/components/LoyaltyModal'
 import { cn } from '@/utils/lib'
 
 export function MobileBottomNav() {
+  const { t } = useTranslation()
   const location = useLocation()
   const { itemCount } = useCart()
   const { isAuthenticated, user } = useAuth()
@@ -79,7 +81,7 @@ export function MobileBottomNav() {
             )}
           </div>
           <span className={cn("text-[10px] mt-1 font-medium leading-none tracking-tight", isCart && "font-bold")}>
-            Bolsa
+            {t('navigation.bag')}
           </span>
         </Link>
 
@@ -91,7 +93,7 @@ export function MobileBottomNav() {
           >
             <Sparkles className="w-5 h-5 transition-transform group-active:scale-90 text-amber-500" />
             <span className="text-[10px] mt-1 font-medium leading-none tracking-tight text-amber-600 dark:text-amber-400">
-              Puntos
+              {t('navigation.points')}
             </span>
           </button>
         </LoyaltyModal>

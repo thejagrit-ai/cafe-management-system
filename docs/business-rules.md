@@ -153,3 +153,7 @@ customer filter to the caller's own id, and reading another customer's order ret
 recipes, employees and payments, with the acting user, the before/after values and
 the request IP where available. Audit failures are swallowed — an audit problem must
 never fail the business operation it describes.
+
+---
+
+Developed and owned by **Norynt** — [www.norynt.app](https://www.norynt.app)

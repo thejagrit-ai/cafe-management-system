@@ -8,6 +8,15 @@ export interface CreateOrderData {
   items: Array<{ productId: string; quantity: number; notes?: string }>;
   notes?: string;
   addressId?: string;
+  /** Loyalty points to spend on this order. The server caps and validates. */
+  redeemPoints?: number;
+  paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'ONLINE';
+  paymentDetails?: {
+    cardNumber?: string;
+    cardHolder?: string;
+    expiry?: string;
+    transactionId?: string;
+  };
 }
 
 export interface OrderQueryParams extends PaginationParams {

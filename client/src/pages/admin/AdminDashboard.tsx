@@ -15,7 +15,6 @@ import {
   getOrderTypeLabel
 } from '@/utils/lib'
 import {
-  TrendingUp,
   ShoppingCart,
   Clock,
   AlertTriangle,
@@ -25,13 +24,8 @@ import {
   DollarSign,
   RotateCcw,
   Package,
-  Layers,
-  UtensilsCrossed,
-  Truck,
-  Store,
   ChevronRight,
-  Receipt,
-  Users
+  Receipt
 } from 'lucide-react'
 import {
   AreaChart,
@@ -40,14 +34,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend
+  ResponsiveContainer
 } from 'recharts'
-
-const DONUT_COLORS = ['#7C4EEE', '#E58A3C', '#22C55E', '#3B82F6', '#EC4899', '#8B5CF6']
 
 export default function AdminDashboard() {
   const { t } = useTranslation()
@@ -91,7 +79,12 @@ export default function AdminDashboard() {
   // Calculate totals for period
   const totalPeriodRevenue = (dashboard.revenueTrend || []).reduce((acc, curr) => acc + (curr.revenue || 0), 0)
   const totalPeriodOrders = (dashboard.orderTrend || []).reduce((acc, curr) => acc + (curr.orders || 0), 0)
-  const avgDailyRevenue = (dashboard.revenueTrend || []).length > 0 ? Math.round(totalPeriodRevenue / dashboard.revenueTrend.length) : 0
+  // Rounded to cents, not to whole currency units: a café averaging $84.60 a
+  // day was being shown $85, which never matched the chart it sits beside.
+  const avgDailyRevenue =
+    (dashboard.revenueTrend || []).length > 0
+      ? Math.round((totalPeriodRevenue / dashboard.revenueTrend.length) * 100) / 100
+      : 0
 
   // Combine trend data for dual chart display
   const combinedTrend = (dashboard.revenueTrend || []).map((item, idx) => {
@@ -106,46 +99,43 @@ export default function AdminDashboard() {
 
   const stats = [
     {
-      label: 'Ventas de Hoy',
+      label: t('admin.salesToday'),
       value: formatCurrency(Number(dashboard.stats.todaysSales)),
-      subtext: `${dashboard.stats.completedOrders} comandas completadas`,
+      subtext: t('adminDashboard.completedOrdersSub', { count: dashboard.stats.completedOrders }),
       icon: DollarSign,
       color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/40',
-      badge: 'Hoy'
     },
     {
-      label: 'Comandas Totales',
+      label: t('adminDashboard.totalOrders'),
       value: dashboard.stats.todaysOrders,
-      subtext: `${dashboard.stats.pendingOrders} en preparación`,
+      subtext: t('adminDashboard.inPrepSub', { count: dashboard.stats.pendingOrders }),
       icon: ShoppingCart,
       color: 'text-[#7C4EEE] bg-[#7C4EEE]/10 border-[#7C4EEE]/20',
-      badge: 'Hoy'
     },
     {
-      label: 'Ticket Promedio',
+      label: t('adminDashboard.averageTicket'),
       value: formatCurrency(Number(dashboard.stats.averageTicket || 0)),
-      subtext: 'Promedio por pedido hoy',
+      subtext: t('adminDashboard.averageTicketSub'),
       icon: Receipt,
       color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/40',
-      badge: 'Promedio'
     },
     {
-      label: 'En Cocina / Barra',
+      label: t('adminDashboard.inKitchen'),
       value: dashboard.stats.pendingOrders,
-      subtext: 'Requieren atención',
+      subtext: t('adminDashboard.needsAttention'),
       icon: Clock,
       color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/40',
-      badge: 'Activo'
     },
     {
-      label: 'Alertas Inventario',
+      label: t('adminDashboard.inventoryAlerts'),
       value: dashboard.stats.lowStockItems,
-      subtext: dashboard.stats.lowStockItems > 0 ? 'Insumos bajo mínimo' : 'Stock en niveles óptimos',
+      subtext: dashboard.stats.lowStockItems > 0
+        ? t('adminDashboard.belowMinimum')
+        : t('adminDashboard.stockHealthy'),
       icon: AlertTriangle,
       color: dashboard.stats.lowStockItems > 0
         ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/40'
         : 'text-zinc-600 bg-zinc-100 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-700',
-      badge: dashboard.stats.lowStockItems > 0 ? 'Crítico' : 'OK'
     },
   ]
 
@@ -167,11 +157,11 @@ export default function AdminDashboard() {
             </h1>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Operaciones en Vivo
+              {t('adminDashboard.liveOps')}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Métricas de ventas, pedidos en tiempo real y estado general del café.
+            {t('admin.panelSubtitle')}
           </p>
         </div>
 
@@ -189,7 +179,7 @@ export default function AdminDashboard() {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {days} Días
+                {t('adminDashboard.daysOption', { count: days })}
               </button>
             ))}
           </div>
@@ -200,16 +190,16 @@ export default function AdminDashboard() {
             onClick={() => refetch()}
             disabled={isFetching}
             className="rounded-xl border-border bg-card text-xs h-9 px-3 hover:bg-secondary flex items-center gap-1.5"
-            title="Refrescar métricas"
+            title={t('adminDashboard.refreshTitle')}
           >
             <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin text-[#7C4EEE]' : 'text-muted-foreground'}`} />
-            <span className="hidden sm:inline">Actualizar</span>
+            <span className="hidden sm:inline">{t('common.refresh')}</span>
           </Button>
 
           <Link to="/admin/orders">
             <Button size="sm" className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs h-9 px-4 font-semibold shadow-xs">
               <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-              <span>Ver Pedidos</span>
+              <span>{t('adminDashboard.viewOrders')}</span>
             </Button>
           </Link>
         </div>
@@ -257,11 +247,13 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-[#7C4EEE]" />
                 <h3 className="font-serif font-bold text-base text-foreground">
-                  {chartMetric === 'revenue' ? 'Tendencia de Facturación' : 'Volumen de Comandas'}
+                  {chartMetric === 'revenue'
+                    ? t('adminDashboard.revenueTrendTitle')
+                    : t('adminDashboard.ordersVolumeTitle')}
                 </h3>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Comportamiento en los últimos {timeRange} días
+                {t('adminDashboard.trendSubtitle', { count: timeRange })}
               </p>
             </div>
 
@@ -276,7 +268,7 @@ export default function AdminDashboard() {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Ingresos ($)
+                {t('adminDashboard.metricRevenue')}
               </button>
               <button
                 type="button"
@@ -287,7 +279,7 @@ export default function AdminDashboard() {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                N° Pedidos
+                {t('adminDashboard.metricOrders')}
               </button>
             </div>
           </div>
@@ -296,28 +288,32 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-3 gap-3 p-3 rounded-xl bg-secondary/30 border border-border/40 text-xs">
             <div>
               <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block">
-                Total Período
+                {t('adminDashboard.periodTotal')}
               </span>
               <span className="font-bold text-foreground text-sm font-sans">
-                {chartMetric === 'revenue' ? formatCurrency(totalPeriodRevenue) : `${totalPeriodOrders} pedidos`}
+                {chartMetric === 'revenue'
+                  ? formatCurrency(totalPeriodRevenue)
+                  : t('adminDashboard.ordersCount', { count: totalPeriodOrders })}
               </span>
             </div>
             <div>
               <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block">
-                Promedio Diario
+                {t('adminDashboard.dailyAverage')}
               </span>
               <span className="font-bold text-foreground text-sm font-sans">
                 {chartMetric === 'revenue'
                   ? formatCurrency(avgDailyRevenue)
-                  : `${Math.round(totalPeriodOrders / (combinedTrend.length || 1))} pedidos`}
+                  : t('adminDashboard.ordersCount', {
+                      count: Math.round(totalPeriodOrders / (combinedTrend.length || 1)),
+                    })}
               </span>
             </div>
             <div>
               <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block">
-                Días Evaluados
+                {t('adminDashboard.daysEvaluated')}
               </span>
               <span className="font-bold text-foreground text-sm font-sans">
-                {timeRange} Días
+                {t('adminDashboard.daysOption', { count: timeRange })}
               </span>
             </div>
           </div>
@@ -349,12 +345,18 @@ export default function AdminDashboard() {
                 />
                 <Tooltip
                   formatter={(value: number) => [
-                    chartMetric === 'revenue' ? formatCurrency(value) : `${value} pedidos`,
-                    chartMetric === 'revenue' ? 'Ventas' : 'Comandas',
+                    chartMetric === 'revenue'
+                      ? formatCurrency(value)
+                      : t('adminDashboard.ordersCount', { count: value }),
+                    chartMetric === 'revenue'
+                      ? t('adminDashboard.tooltipSales')
+                      : t('adminDashboard.tooltipOrders'),
                   ]}
                   labelFormatter={(_label, payload) => {
                     const fullDate = payload?.[0]?.payload?.date
-                    return fullDate ? `Fecha: ${formatDate(fullDate)}` : ''
+                    return fullDate
+                      ? t('adminDashboard.tooltipDate', { date: formatDate(fullDate) })
+                      : ''
                   }}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
@@ -384,22 +386,22 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2">
               <Coffee className="w-4 h-4 text-[#7C4EEE]" />
               <h3 className="font-serif font-bold text-base text-foreground">
-                Productos Estrella
+                {t('admin.topProductsTitle')}
               </h3>
             </div>
             <Link to="/admin/products" className="text-xs font-semibold text-[#7C4EEE] hover:underline flex items-center">
-              <span>Catálogo</span>
+              <span>{t('adminDashboard.catalogueLink')}</span>
               <ChevronRight className="w-3 h-3 ml-0.5" />
             </Link>
           </div>
 
           <p className="text-xs text-muted-foreground -mt-2">
-            Top de artículos con mayor volumen y rotación.
+            {t('adminDashboard.topProductsSub')}
           </p>
 
           {(!dashboard.popularProducts || dashboard.popularProducts.length === 0) ? (
             <div className="py-12 text-center text-muted-foreground text-xs">
-              No hay suficientes datos de ventas registrados.
+              {t('adminDashboard.noSalesData')}
             </div>
           ) : (
             <div className="space-y-3 pt-1">
@@ -424,7 +426,7 @@ export default function AdminDashboard() {
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="font-bold text-foreground font-sans">{prod.quantity} u.</span>
+                        <span className="font-bold text-foreground font-sans">{t('adminDashboard.unitsShort', { count: prod.quantity })}</span>
                         <span className="text-[10px] text-muted-foreground block">
                           {formatCurrency(Number(prod.revenue))}
                         </span>
@@ -447,13 +449,13 @@ export default function AdminDashboard() {
           {orderTypeData.length > 0 && (
             <div className="pt-3 border-t border-border/60">
               <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block mb-2">
-                Canales de Atención
+                {t('adminDashboard.channels')}
               </span>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 {orderTypeData.map((item, i) => (
                   <div key={i} className="p-2 rounded-xl bg-secondary/30 border border-border/40">
                     <span className="text-[10px] text-muted-foreground block truncate">{item.name}</span>
-                    <span className="font-bold text-foreground">{item.value} pedidos</span>
+                    <span className="font-bold text-foreground">{t('adminDashboard.ordersCount', { count: item.value })}</span>
                   </div>
                 ))}
               </div>
@@ -473,9 +475,9 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <h3 className="font-serif font-bold text-base text-foreground">
-                  Alertas de Stock & Insumos
+                  {t('adminDashboard.stockAlerts')}
                 </h3>
-                <p className="text-xs text-muted-foreground">Insumos cercanos a agotarse</p>
+                <p className="text-xs text-muted-foreground">{t('adminDashboard.stockAlertsSub')}</p>
               </div>
             </div>
 
@@ -483,7 +485,7 @@ export default function AdminDashboard() {
               to="/admin/ingredients"
               className="text-xs font-semibold text-[#7C4EEE] hover:underline flex items-center gap-1"
             >
-              <span>Ver Inventario</span>
+              <span>{t('adminDashboard.viewInventory')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -491,9 +493,9 @@ export default function AdminDashboard() {
           {dashboard.lowStock.length === 0 ? (
             <div className="p-8 text-center bg-secondary/20 rounded-2xl border border-dashed border-border/60 space-y-1">
               <Package className="w-8 h-8 mx-auto text-emerald-600/70" />
-              <p className="text-xs font-semibold text-foreground">Inventario Saludable</p>
+              <p className="text-xs font-semibold text-foreground">{t('adminDashboard.inventoryHealthy')}</p>
               <p className="text-[11px] text-muted-foreground">
-                Todos los ingredientes e insumos cuentan con existencias superiores al mínimo establecido.
+                {t('adminDashboard.inventoryHealthyDesc')}
               </p>
             </div>
           ) : (
@@ -525,7 +527,7 @@ export default function AdminDashboard() {
                           />
                         </div>
                         <span className="text-[10px] text-muted-foreground shrink-0">
-                          Mín: {item.minStock} {item.unit}
+                          {t('adminDashboard.minLabel', { min: item.minStock, unit: item.unit })}
                         </span>
                       </div>
                     </div>
@@ -536,7 +538,7 @@ export default function AdminDashboard() {
                         variant="outline"
                         className="rounded-lg h-7 text-[10px] border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 px-2"
                       >
-                        Ajustar
+                        {t('adminDashboard.adjust')}
                       </Button>
                     </Link>
                   </div>
@@ -555,9 +557,9 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <h3 className="font-serif font-bold text-base text-foreground">
-                  Comandas Recientes
+                  {t('admin.recentOrdersTitle')}
                 </h3>
-                <p className="text-xs text-muted-foreground">Últimos pedidos registrados en el sistema</p>
+                <p className="text-xs text-muted-foreground">{t('adminDashboard.recentOrdersSub')}</p>
               </div>
             </div>
 
@@ -565,14 +567,14 @@ export default function AdminDashboard() {
               to="/admin/orders"
               className="text-xs font-semibold text-[#7C4EEE] hover:underline flex items-center gap-1"
             >
-              <span>Ver Todas</span>
+              <span>{t('common.viewAll')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           {(!dashboard.recentOrders || dashboard.recentOrders.length === 0) ? (
             <div className="p-8 text-center bg-secondary/20 rounded-2xl border border-dashed border-border/60 text-xs text-muted-foreground">
-              No hay pedidos recientes.
+              {t('adminDashboard.noRecentOrders')}
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -591,14 +593,14 @@ export default function AdminDashboard() {
                       </Badge>
                       {order.tableNumber && (
                         <span className="text-[10px] font-semibold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-md">
-                          Mesa #{order.tableNumber}
+                          {t('adminDashboard.tableNum', { number: order.tableNumber })}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <span>{order.customerName || 'Cliente en barra'}</span>
+                      <span>{order.customerName || t('common.walkInCustomer')}</span>
                       <span>·</span>
-                      <span>{order.itemsCount ? `${order.itemsCount} productos` : ''}</span>
+                      <span>{order.itemsCount ? t('adminDashboard.productsCount', { count: order.itemsCount }) : ''}</span>
                       <span>·</span>
                       <span className="font-mono">{formatTime(order.createdAt)}</span>
                     </div>

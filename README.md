@@ -1,5 +1,7 @@
 # The Coffee Bean Cafe — Management System
 
+**Developed and owned by [Norynt](https://www.norynt.app).**
+
 A full-stack café order and inventory management system: customer storefront, staff
 order console, and admin back office over one PostgreSQL database.
 
@@ -326,6 +328,21 @@ The API is not running, or `npm run dev:client` was started alone. Use `npm run 
 
 ---
 
+## Owner
+
+This project is developed, owned and maintained by **Norynt**.
+
+- Website — [www.norynt.app](https://www.norynt.app)
+
+The admin and staff consoles carry a "Developed by Norynt" credit in their footer,
+linking back to the site above. Please keep that attribution in place in any
+deployment or derivative work.
+
+---
+
 ## License
 
-MIT
+MIT © Norynt — see [LICENSE](LICENSE).
+
+Permission is granted to use, copy, modify and distribute this software, provided
+the copyright notice and the attribution above are retained.

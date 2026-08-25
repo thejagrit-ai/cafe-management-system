@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ConsoleFooter } from '@/components/ConsoleFooter'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -26,9 +27,9 @@ export default function StaffLayout() {
   useRealtimeEvents()
 
   const sidebarLinks = [
-    { href: '/staff', label: 'KDS Cocina', icon: LayoutDashboard },
-    { href: '/staff/orders', label: 'Comandas', icon: ShoppingCart },
-    { href: '/staff/products', label: 'Productos', icon: Package },
+    { href: '/staff', label: t('staffNav.kds'), icon: LayoutDashboard },
+    { href: '/staff/orders', label: t('staffNav.orders'), icon: ShoppingCart },
+    { href: '/staff/products', label: t('staffNav.products'), icon: Package },
   ]
 
   return (
@@ -47,7 +48,7 @@ export default function StaffLayout() {
                   Café Origen
                 </span>
                 <span className="text-[10px] tracking-wider uppercase font-semibold text-muted-foreground">
-                  Consola Baristas
+                  {t('staffNav.brandTagline')}
                 </span>
               </div>
             </Link>
@@ -84,7 +85,7 @@ export default function StaffLayout() {
               {user?.employee ? `${user.employee.firstName} ${user.employee.lastName || ''}` : user?.email}
             </p>
             <span className="text-[10px] text-[#7C4EEE] uppercase tracking-widest font-mono font-bold">
-              Staff Activo
+              {t('staffNav.staffActive')}
             </span>
           </div>
 
@@ -110,10 +111,10 @@ export default function StaffLayout() {
             </div>
             <div>
               <span className="text-xs font-bold text-foreground block md:hidden">
-                Barista KDS
+                {t('staffNav.mobileTitle')}
               </span>
               <span className="hidden md:inline text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Consola de Operaciones & Cocina
+                {t('staffNav.headerTitle')}
               </span>
             </div>
           </div>
@@ -126,7 +127,7 @@ export default function StaffLayout() {
               size="sm"
               className="md:hidden h-8 w-8 p-0 rounded-lg text-rose-600 hover:bg-rose-50"
               onClick={() => logout()}
-              title="Cerrar sesión"
+              title={t('navigation.logout')}
             >
               <LogOut className="h-4 w-4" />
             </Button>
@@ -134,11 +135,16 @@ export default function StaffLayout() {
         </header>
 
         {/* Page Content with bottom padding on mobile */}
-        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 w-full overflow-y-auto pb-24 md:pb-8">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 w-full overflow-y-auto">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
         </main>
+
+        {/* Extra bottom padding on phones clears the fixed nav bar below. */}
+        <div className="pb-20 md:pb-0">
+          <ConsoleFooter />
+        </div>
 
         {/* Mobile Bottom Navigation for Staff on Phones */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border/80 shadow-lg px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">

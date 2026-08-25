@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -15,9 +16,9 @@ import { Plus, Search, Edit2, ChevronLeft, ChevronRight, Truck, Mail, Phone } fr
 import { toast } from 'sonner'
 
 const supplierSchema = z.object({
-  name: z.string().min(1, 'El nombre del proveedor es obligatorio'),
+  name: z.string().min(1, 'validation.supplierNameRequired'),
   contactName: z.string().optional(),
-  email: z.string().email('Correo inválido').optional().or(z.literal('')),
+  email: z.string().email('validation.invalidEmail').optional().or(z.literal('')),
   phone: z.string().optional(),
   address: z.string().optional(),
   isActive: z.boolean(),
@@ -26,6 +27,7 @@ const supplierSchema = z.object({
 type SupplierFormData = z.infer<typeof supplierSchema>
 
 export default function AdminSuppliers() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -53,11 +55,11 @@ export default function AdminSuppliers() {
     mutationFn: (data: SupplierFormData) => suppliersApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] })
-      toast.success('Proveedor registrado')
+      toast.success(t('adminSuppliers.created'))
       setDialogOpen(false)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al guardar proveedor'),
+    onError: (err: any) => toast.error(err.message || t('adminSuppliers.createError')),
   })
 
   const updateMutation = useMutation({
@@ -65,12 +67,12 @@ export default function AdminSuppliers() {
       suppliersApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] })
-      toast.success('Proveedor actualizado')
+      toast.success(t('adminSuppliers.updated'))
       setDialogOpen(false)
       setSelectedSupplier(null)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al actualizar proveedor'),
+    onError: (err: any) => toast.error(err.message || t('adminSuppliers.updateError')),
   })
 
   const suppliers = data?.data ?? []
@@ -110,10 +112,10 @@ export default function AdminSuppliers() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight">
-            Directorio de Proveedores
+            {t('adminSuppliers.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Gestión de aliados comerciales para granos de café, lácteos y repostería.
+            {t('adminSuppliers.subtitle')}
           </p>
         </div>
 
@@ -126,7 +128,7 @@ export default function AdminSuppliers() {
           className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold"
         >
           <Plus className="mr-1.5 h-4 w-4" />
-          <span>Nuevo Proveedor</span>
+          <span>{t('adminSuppliers.newSupplier')}</span>
         </Button>
       </div>
 
@@ -135,7 +137,7 @@ export default function AdminSuppliers() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por empresa o contacto..."
+            placeholder={t('adminSuppliers.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10 rounded-xl text-xs"
@@ -148,18 +150,18 @@ export default function AdminSuppliers() {
         {suppliers.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-2 text-xs">
             <Truck className="w-8 h-8 mx-auto text-muted-foreground stroke-[1.5]" />
-            <p className="font-semibold text-foreground text-sm">No hay proveedores registrados</p>
+            <p className="font-semibold text-foreground text-sm">{t('adminSuppliers.empty')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-secondary/40 border-b border-border/60 text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
-                  <th className="p-4">Empresa Proveedora</th>
-                  <th className="p-4">Persona de Contacto</th>
-                  <th className="p-4">Canales de Contacto</th>
-                  <th className="p-4">Estado</th>
-                  <th className="p-4 text-right">Acciones</th>
+                  <th className="p-4">{t('adminSuppliers.colCompany')}</th>
+                  <th className="p-4">{t('adminSuppliers.colContact')}</th>
+                  <th className="p-4">{t('adminSuppliers.colChannels')}</th>
+                  <th className="p-4">{t('common.status')}</th>
+                  <th className="p-4 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -174,7 +176,7 @@ export default function AdminSuppliers() {
                       )}
                     </td>
                     <td className="p-4 text-foreground font-medium">
-                      {s.contactName || 'No registrado'}
+                      {s.contactName || t('common.notRegistered')}
                     </td>
                     <td className="p-4 space-y-0.5 text-muted-foreground">
                       {s.email && (
@@ -198,7 +200,7 @@ export default function AdminSuppliers() {
                             : 'bg-zinc-100 text-zinc-600 text-[10px]'
                         }
                       >
-                        {s.isActive ? 'Activo' : 'Inactivo'}
+                        {s.isActive ? t('common.active') : t('common.inactive')}
                       </Badge>
                     </td>
                     <td className="p-4 text-right">
@@ -209,7 +211,7 @@ export default function AdminSuppliers() {
                         className="rounded-lg text-[11px] h-8 px-2.5"
                       >
                         <Edit2 className="w-3 h-3 mr-1" />
-                        <span>Editar</span>
+                        <span>{t('common.edit')}</span>
                       </Button>
                     </td>
                   </tr>
@@ -224,7 +226,12 @@ export default function AdminSuppliers() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4 border-t border-border/60 text-xs text-muted-foreground">
           <p>
-            Página {pagination.page} de {pagination.totalPages} ({pagination.total} proveedores)
+            {t('common.pageOf', {
+              page: pagination.page,
+              totalPages: pagination.totalPages,
+              total: pagination.total,
+              unit: t('adminSuppliers.unit'),
+            })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -235,7 +242,7 @@ export default function AdminSuppliers() {
               className="rounded-xl"
             >
               <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-              <span>Anterior</span>
+              <span>{t('common.previous')}</span>
             </Button>
             <Button
               variant="outline"
@@ -244,7 +251,7 @@ export default function AdminSuppliers() {
               disabled={page >= pagination.totalPages}
               className="rounded-xl"
             >
-              <span>Siguiente</span>
+              <span>{t('common.next')}</span>
               <ChevronRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>
@@ -256,51 +263,51 @@ export default function AdminSuppliers() {
         <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
-              {selectedSupplier ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+              {selectedSupplier ? t('adminSuppliers.editSupplier') : t('adminSuppliers.newSupplier')}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-xs">
             <div className="space-y-1">
-              <Label className="text-xs">Razón Social / Nombre de la Empresa</Label>
-              <Input {...register('name')} placeholder="Ej. Granos del Huila S.A.S" className="h-9 rounded-xl" />
-              {errors.name && <p className="text-rose-500 text-[10px]">{errors.name.message}</p>}
+              <Label className="text-xs">{t('adminSuppliers.fieldCompany')}</Label>
+              <Input {...register('name')} placeholder={t('adminSuppliers.fieldCompanyPlaceholder')} className="h-9 rounded-xl" />
+              {errors.name && <p className="text-rose-500 text-[10px]">{t(errors.name.message as string)}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Nombre del Asesor / Contacto</Label>
-              <Input {...register('contactName')} placeholder="Ej. Carlos Mendoza" className="h-9 rounded-xl" />
+              <Label className="text-xs">{t('adminSuppliers.fieldContact')}</Label>
+              <Input {...register('contactName')} placeholder={t('adminSuppliers.fieldContactPlaceholder')} className="h-9 rounded-xl" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Correo Electrónico</Label>
+                <Label className="text-xs">{t('adminSuppliers.fieldEmail')}</Label>
                 <Input type="email" {...register('email')} placeholder="ventas@proveedor.com" className="h-9 rounded-xl" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Teléfono</Label>
+                <Label className="text-xs">{t('adminSuppliers.fieldPhone')}</Label>
                 <Input {...register('phone')} placeholder="+57 300 000 0000" className="h-9 rounded-xl" />
               </div>
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Dirección / Ciudad</Label>
-              <Input {...register('address')} placeholder="Zona Industrial, Manizales" className="h-9 rounded-xl" />
+              <Label className="text-xs">{t('adminSuppliers.fieldAddress')}</Label>
+              <Input {...register('address')} placeholder={t('adminSuppliers.fieldAddressPlaceholder')} className="h-9 rounded-xl" />
             </div>
 
             <div className="flex items-center pt-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" {...register('isActive')} className="rounded accent-[#7C4EEE]" />
-                <span className="text-xs">Proveedor Activo</span>
+                <span className="text-xs">{t('adminSuppliers.activeToggle')}</span>
               </label>
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="rounded-xl">
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit" size="sm" className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white">
-                Guardar Proveedor
+                {t('adminSuppliers.save')}
               </Button>
             </DialogFooter>
           </form>

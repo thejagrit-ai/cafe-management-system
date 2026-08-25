@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { categoriesApi } from '@/api/categories'
 import { Skeleton } from '@/components/ui/skeleton'
+import { SmartImage } from '@/components/SmartImage'
 import { useReveal } from '@/hooks/useReveal'
 import Separator from './Separator'
 
@@ -45,22 +46,21 @@ export default function Explore() {
                   className="on-dark group relative flex h-60 flex-col justify-end overflow-hidden rounded-2xl border border-border/80 bg-brand-ink p-7 text-white transition-all duration-500 hover:border-brand-gold hover:-translate-y-1.5 hover:shadow-2xl"
                   style={{ transitionDelay: `${index * 80}ms` }}
                 >
-                  {category.imageUrl ? (
-                    <img
-                      src={category.imageUrl}
-                      alt=""
-                      loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover opacity-50 transition-transform duration-700 ease-out group-hover:scale-110"
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backgroundImage:
-                          'radial-gradient(ellipse at 70% 10%, rgba(199,161,122,0.30) 0%, transparent 60%)',
-                      }}
-                    />
-                  )}
+                  <SmartImage
+                    src={category.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover opacity-50 transition-transform duration-700 ease-out group-hover:scale-110"
+                    fallback={
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          backgroundImage:
+                            'radial-gradient(ellipse at 70% 10%, rgba(199,161,122,0.30) 0%, transparent 60%)',
+                        }}
+                      />
+                    }
+                  />
 
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 group-hover:opacity-90" />
 

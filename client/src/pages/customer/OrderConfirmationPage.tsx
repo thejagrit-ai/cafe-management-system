@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle, Coffee, MapPin, UtensilsCrossed, Sparkles, UserPlus } from 'lucide-react'
 import { ordersApi } from '@/api/orders'
-import { authApi } from '@/api/auth'
 import { useAuth } from '@/contexts/AuthContext'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
@@ -19,7 +18,7 @@ const STEPS = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'] as con
 export default function OrderConfirmationPage() {
   const { orderNumber } = useParams<{ orderNumber: string }>()
   const { t } = useTranslation()
-  const { user, isAuthenticated, register } = useAuth()
+  const { isAuthenticated, register } = useAuth()
 
   const [password, setPassword] = useState('')
   const [isRegistering, setIsRegistering] = useState(false)
@@ -37,7 +36,7 @@ export default function OrderConfirmationPage() {
   const handleQuickRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!password || password.length < 8) {
-      toast.error('La contraseña debe tener al menos 8 caracteres')
+      toast.error(t('orderConfirmation.passwordTooShort'))
       return
     }
 
@@ -55,9 +54,9 @@ export default function OrderConfirmationPage() {
       })
 
       setRegisteredSuccess(true)
-      toast.success('¡Cuenta creada con éxito! Se han acreditado +50 Puntos de Bienvenida 🎉')
+      toast.success(`${t('orderConfirmation.accountCreated')} \ud83c\udf89`)
     } catch (err: any) {
-      toast.error(err?.message || 'No se pudo crear la cuenta')
+      toast.error(err?.message || t('orderConfirmation.accountFailed'))
     } finally {
       setIsRegistering(false)
     }
@@ -135,10 +134,10 @@ export default function OrderConfirmationPage() {
             </div>
             <div>
               <h3 className="font-serif font-bold text-base text-foreground">
-                ¡Guarda tu pedido y gana 50 Puntos de Bienvenida!
+                {t('orderConfirmation.saveOrderTitle')}
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Crea tu cuenta en un solo paso con tu contraseña para acumular puntos y canjear café gratis en tus próximas visitas.
+                {t('orderConfirmation.saveOrderDesc')}
               </p>
             </div>
           </div>
@@ -146,7 +145,7 @@ export default function OrderConfirmationPage() {
           <form onSubmit={handleQuickRegister} className="flex flex-col sm:flex-row gap-3 pt-1">
             <Input
               type="password"
-              placeholder="Crea una contraseña (mín. 8 caracteres)"
+              placeholder={t('orderConfirmation.passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-11 rounded-xl bg-card text-xs flex-1 border-border/80"
@@ -157,7 +156,11 @@ export default function OrderConfirmationPage() {
               className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white font-semibold text-xs h-11 px-5 shrink-0 shadow-xs"
             >
               <UserPlus className="w-4 h-4 mr-1.5" />
-              <span>{isRegistering ? 'Creando cuenta...' : 'Reclamar 50 Puntos'}</span>
+              <span>
+                {isRegistering
+                  ? t('orderConfirmation.creatingAccount')
+                  : t('orderConfirmation.claimPoints')}
+              </span>
             </Button>
           </form>
         </div>

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../config/prisma';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 
@@ -147,6 +148,66 @@ export class LoyaltyService {
     ]);
 
     return totalEarned;
+  }
+
+  /**
+   * How many of `balance` points can usefully be spent on a bill of `subtotal`.
+   *
+   * Points are worth a fixed amount each, so redeeming more than the bill is
+   * worth would simply burn the surplus. Requests are capped rather than
+   * rejected: a customer asking to "use all my points" on a small order should
+   * get the discount, not an error.
+   */
+  maxRedeemablePoints(balance: number, subtotal: number): number {
+    const affordable = Math.floor(subtotal / POINT_REDEMPTION_VALUE);
+    return Math.max(Math.min(balance, affordable), 0);
+  }
+
+  /**
+   * Spends points against an order inside the caller's transaction.
+   *
+   * Redemption has to commit with the order it discounts. The standalone
+   * `redeemPoints` below opens its own transaction, so using it during
+   * checkout could debit a customer for an order that then failed to write.
+   *
+   * Returns the discount in currency.
+   */
+  async applyRedemption(
+    tx: Prisma.TransactionClient,
+    customerId: string,
+    pointsToRedeem: number,
+    orderId: string
+  ): Promise<number> {
+    if (pointsToRedeem <= 0) return 0;
+
+    const customer = await tx.customer.findUnique({ where: { id: customerId } });
+    if (!customer) throw new NotFoundError('Customer');
+
+    if (customer.loyaltyPoints < pointsToRedeem) {
+      throw new BadRequestError(
+        `Saldo de puntos insuficiente. Tienes ${customer.loyaltyPoints} puntos disponibles.`
+      );
+    }
+
+    const discountAmount = pointsToRedeem * POINT_REDEMPTION_VALUE;
+    const newBalance = customer.loyaltyPoints - pointsToRedeem;
+
+    await tx.customer.update({
+      where: { id: customerId },
+      data: { loyaltyPoints: newBalance, loyaltyTier: this.calculateTier(newBalance) },
+    });
+
+    await tx.loyaltyTransaction.create({
+      data: {
+        customerId,
+        orderId,
+        points: -pointsToRedeem,
+        type: 'REDEEMED',
+        description: `Redencion de puntos en comanda ($${discountAmount.toLocaleString()} COP)`,
+      },
+    });
+
+    return discountAmount;
   }
 
   async redeemPoints(customerId: string, pointsToRedeem: number, orderId?: string): Promise<number> {

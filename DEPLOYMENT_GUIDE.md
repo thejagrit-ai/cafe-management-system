@@ -47,7 +47,7 @@ If you prefer using **Vercel** for ultra-fast frontend speeds:
 1. Go to [render.com](https://render.com) → **New Web Service**.
 2. Connect your GitHub repo, set:
    - **Root Directory:** `server`
-   - **Build Command:** `npm install && npm run build && npx prisma db push && npm run db:seed`
+   - **Build Command:** `npm install && npm run build && npx prisma db push && npm run db:seed && npm run db:repair-images`
    - **Start Command:** `npm start`
 3. Add Environment Variables:
    - `DATABASE_URL`: *(Your Postgres Connection String from Neon/Supabase)*
@@ -66,7 +66,24 @@ If you prefer using **Vercel** for ultra-fast frontend speeds:
 
 ---
 
+## Re-deploying without losing data
+
+The build command runs the seeder on every deploy. `npm run db:seed` detects a
+database that already holds users, products or orders and skips it, so live
+orders, customers and audit history survive a redeploy untouched. Only set
+`SEED_FORCE=true` if you genuinely want to erase everything and start again.
+
+`npm run db:repair-images` runs afterwards and repoints any product or category
+still holding a dead remote photo URL at the images bundled with the frontend.
+It never overwrites a picture that was uploaded or set by hand.
+
+---
+
 ## 🔑 Default Seeded Accounts for Production Testing
 - **Admin Panel:** `admin@cafe.com` / `admin123`
 - **Staff (Baristas & Kitchen KDS):** `staff@cafe.com` / `staff123`
 - **Customer:** `customer@cafe.com` / `customer123`
+
+---
+
+Developed and owned by **Norynt** — [www.norynt.app](https://www.norynt.app)

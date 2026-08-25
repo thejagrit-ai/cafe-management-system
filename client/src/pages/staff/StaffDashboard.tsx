@@ -6,7 +6,7 @@ import { ordersApi } from '@/api/orders'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatTime, getStatusColor, getOrderTypeLabel, cn } from '@/utils/lib'
+import { formatTime, getStatusColor, getStatusLabel, getOrderTypeLabel, cn } from '@/utils/lib'
 import {
   Clock,
   CheckCircle2,
@@ -52,10 +52,10 @@ export default function StaffDashboard() {
       queryClient.invalidateQueries({ queryKey: ['staff-orders'] })
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] })
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
-      toast.success('Comanda actualizada')
+      toast.success(t('staff.orderUpdated'))
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Error al actualizar el estado')
+      toast.error(err.message || t('staff.statusUpdateError'))
     }
   })
 
@@ -78,13 +78,13 @@ export default function StaffDashboard() {
   const getNextAction = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return { nextStatus: 'CONFIRMED', label: 'Confirmar', icon: CheckCircle2, color: 'bg-blue-600 hover:bg-blue-500' }
+        return { nextStatus: 'CONFIRMED', label: t('staff.btnConfirm'), icon: CheckCircle2, color: 'bg-blue-600 hover:bg-blue-500' }
       case 'CONFIRMED':
-        return { nextStatus: 'PREPARING', label: 'Comenzar Preparación', icon: ChefHat, color: 'bg-[#7C4EEE] hover:bg-[#683BD6]' }
+        return { nextStatus: 'PREPARING', label: t('staff.btnStartPrep'), icon: ChefHat, color: 'bg-[#7C4EEE] hover:bg-[#683BD6]' }
       case 'PREPARING':
-        return { nextStatus: 'READY', label: 'Marcar como Listo', icon: PackageCheck, color: 'bg-emerald-600 hover:bg-emerald-500' }
+        return { nextStatus: 'READY', label: t('staff.btnMarkReady'), icon: PackageCheck, color: 'bg-emerald-600 hover:bg-emerald-500' }
       case 'READY':
-        return { nextStatus: 'COMPLETED', label: 'Entregar Comanda', icon: ArrowRight, color: 'bg-teal-600 hover:bg-teal-500' }
+        return { nextStatus: 'COMPLETED', label: t('staff.btnComplete'), icon: ArrowRight, color: 'bg-teal-600 hover:bg-teal-500' }
       default:
         return null
     }
@@ -114,10 +114,10 @@ export default function StaffDashboard() {
                 ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
                 : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
             }`}
-            title={isMuted ? 'Activar sonido de pedidos' : 'Silenciar sonido de pedidos'}
+            title={isMuted ? t('staff.enableSound') : t('staff.muteSound')}
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 animate-pulse" />}
-            <span>{isMuted ? 'Sonido Silenciado' : 'Sonido Activo'}</span>
+            <span>{isMuted ? t('staff.soundMuted') : t('staff.soundActive')}</span>
           </Button>
 
           <Button
@@ -125,10 +125,10 @@ export default function StaffDashboard() {
             size="sm"
             onClick={testSound}
             className="rounded-xl text-xs px-2.5"
-            title="Probar sonido de timbre"
+            title={t('staff.testSoundTitle')}
           >
             <Bell className="w-3.5 h-3.5 mr-1" />
-            <span>Probar</span>
+            <span>{t('staff.testSound')}</span>
           </Button>
 
           <Button
@@ -162,7 +162,7 @@ export default function StaffDashboard() {
             <ChefHat className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-muted-foreground font-medium">En Preparación</span>
+            <span className="text-xs text-muted-foreground font-medium">{t('staff.inProgress')}</span>
             <p className="text-2xl font-bold font-sans text-foreground mt-0.5">
               {dashboard.pendingOrders.filter((o: any) => o.status === 'PREPARING').length}
             </p>
@@ -174,7 +174,7 @@ export default function StaffDashboard() {
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-muted-foreground font-medium">Completados Hoy</span>
+            <span className="text-xs text-muted-foreground font-medium">{t('staff.completedToday')}</span>
             <p className="text-2xl font-bold font-sans text-foreground mt-0.5">
               {dashboard.stats.completedOrders}
             </p>
@@ -187,19 +187,19 @@ export default function StaffDashboard() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Layers className="w-5 h-5 text-[#7C4EEE]" />
-            <span>Comandas Activas en Cola</span>
+            <span>{t('staff.activeQueue')}</span>
           </h2>
           <span className="text-xs text-muted-foreground">
-            {dashboard.pendingOrders.length} comandas en proceso
+            {t('staff.ordersInProgress', { count: dashboard.pendingOrders.length })}
           </span>
         </div>
 
         {dashboard.pendingOrders.length === 0 ? (
           <div className="p-12 text-center rounded-2xl bg-card border border-border space-y-3 shadow-xs">
             <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500 stroke-[1.5]" />
-            <h3 className="font-semibold text-foreground text-base">¡Todas las comandas al día!</h3>
+            <h3 className="font-semibold text-foreground text-base">{t('staff.allCaughtUp')}</h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              No hay pedidos pendientes en la cola de preparación en este momento.
+              {t('staff.allCaughtUpDesc')}
             </p>
           </div>
         ) : (
@@ -222,17 +222,17 @@ export default function StaffDashboard() {
                         </span>
                         {order.tableNumber && (
                           <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[11px] font-bold">
-                            Mesa {order.tableNumber}
+                            {t('staff.tablePrefix')} {order.tableNumber}
                           </Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {order.customerName || 'Cliente en barra'} · {formatTime(order.createdAt)}
+                        {order.customerName || t('common.walkInCustomer')} · {formatTime(order.createdAt)}
                       </p>
                     </div>
 
                     <Badge className={cn("text-xs font-semibold uppercase tracking-wider", getStatusColor(order.status))}>
-                      {order.status}
+                      {getStatusLabel(order.status)}
                     </Badge>
                   </div>
 

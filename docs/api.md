@@ -224,3 +224,7 @@ from live database rows.
 
 100 requests per 15 minutes per IP across `/api/`, returning `429`. Disabled when
 `NODE_ENV=test`.
+
+---
+
+Developed and owned by **Norynt** — [www.norynt.app](https://www.norynt.app)

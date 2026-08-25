@@ -2,6 +2,12 @@
   "name": "server",
   "version": "1.0.0",
   "description": "Cafe Management System - Backend API",
+  "author": {
+    "name": "Norynt",
+    "url": "https://www.norynt.app"
+  },
+  "license": "MIT",
+  "homepage": "https://www.norynt.app",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -17,6 +23,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:prod": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:repair-images": "tsx prisma/repair-images.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {

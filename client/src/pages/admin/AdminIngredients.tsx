@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,29 +20,33 @@ import { Plus, Search, Edit2, Boxes, ArrowUpDown } from 'lucide-react'
 import { toast } from 'sonner'
 
 const ingredientSchema = z.object({
-  name: z.string().min(1, 'El nombre es obligatorio'),
-  sku: z.string().min(1, 'El SKU es obligatorio'),
-  unit: z.string().min(1, 'La unidad es obligatoria'),
-  currentStock: z.number().min(0, 'El stock no puede ser negativo'),
-  minStock: z.number().min(0, 'El stock mínimo no puede ser negativo'),
-  maxStock: z.number().min(0, 'El stock máximo no puede ser negativo'),
-  costPerUnit: z.number().min(0, 'El costo no puede ser negativo'),
+  name: z.string().min(1, 'validation.nameRequired'),
+  sku: z.string().min(1, 'validation.skuRequired'),
+  unit: z.string().min(1, 'validation.unitRequired'),
+  currentStock: z.number().min(0, 'validation.stockNotNegative'),
+  minStock: z.number().min(0, 'validation.minStockNotNegative'),
+  maxStock: z.number().min(0, 'validation.maxStockNotNegative'),
+  costPerUnit: z.number().min(0, 'validation.costNotNegative'),
   supplierId: z.string().optional(),
   isActive: z.boolean(),
 })
 
 type IngredientFormData = z.infer<typeof ingredientSchema>
 
+// These must match the API's InventoryTransactionType exactly; they used to
+// carry a STOCK_/MANUAL_ prefix the server rejected.
+const STOCK_MOVEMENT_TYPES = [
+  'RECEIVED',
+  'ADDED',
+  'DEDUCTED',
+  'ADJUSTMENT',
+  'WASTE',
+  'DAMAGED',
+] as const
+
 const stockAdjustmentSchema = z.object({
-  type: z.enum([
-    'STOCK_RECEIVED',
-    'STOCK_ADDED',
-    'STOCK_DEDUCTED',
-    'MANUAL_ADJUSTMENT',
-    'WASTE',
-    'DAMAGED',
-  ]),
-  quantity: z.number().min(0.01, 'La cantidad debe ser mayor a 0'),
+  type: z.enum(STOCK_MOVEMENT_TYPES),
+  quantity: z.number().min(0.01, 'validation.quantityPositive'),
   unitCost: z.number().optional(),
   notes: z.string().optional(),
 })
@@ -49,6 +54,7 @@ const stockAdjustmentSchema = z.object({
 type StockAdjustmentFormData = z.infer<typeof stockAdjustmentSchema>
 
 export default function AdminIngredients() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [lowStockFilter, setLowStockFilter] = useState(false)
@@ -97,7 +103,7 @@ export default function AdminIngredients() {
     formState: { errors: stockErrors },
   } = useForm<StockAdjustmentFormData>({
     resolver: zodResolver(stockAdjustmentSchema),
-    defaultValues: { type: 'STOCK_RECEIVED', quantity: 0, notes: '' },
+    defaultValues: { type: 'RECEIVED', quantity: 0, notes: '' },
   })
 
   const createMutation = useMutation({
@@ -105,11 +111,11 @@ export default function AdminIngredients() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredients'] })
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
-      toast.success('Ingrediente registrado')
+      toast.success(t('adminIngredients.created'))
       setDialogOpen(false)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al guardar'),
+    onError: (err: any) => toast.error(err.message || t('adminIngredients.createError')),
   })
 
   const updateMutation = useMutation({
@@ -117,12 +123,12 @@ export default function AdminIngredients() {
       ingredientsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredients'] })
-      toast.success('Ingrediente actualizado')
+      toast.success(t('adminIngredients.updated'))
       setDialogOpen(false)
       setSelectedIngredient(null)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al actualizar'),
+    onError: (err: any) => toast.error(err.message || t('adminIngredients.updateError')),
   })
 
   const adjustStockMutation = useMutation({
@@ -131,12 +137,12 @@ export default function AdminIngredients() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ingredients'] })
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
-      toast.success('Inventario ajustado correctamente')
+      toast.success(t('adminIngredients.adjusted'))
       setStockDialogOpen(false)
       setSelectedIngredient(null)
       resetStock()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al ajustar stock'),
+    onError: (err: any) => toast.error(err.message || t('adminIngredients.adjustError')),
   })
 
   const ingredients = data?.data ?? []
@@ -193,10 +199,10 @@ export default function AdminIngredients() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight">
-            Inventario & Materias Primas
+            {t('adminIngredients.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Control de existencias, ajustes de stock y catálogo de ingredientes.
+            {t('adminIngredients.subtitle')}
           </p>
         </div>
 
@@ -209,7 +215,7 @@ export default function AdminIngredients() {
           className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold"
         >
           <Plus className="mr-1.5 h-4 w-4" />
-          <span>Nuevo Ingrediente</span>
+          <span>{t('adminIngredients.newIngredient')}</span>
         </Button>
       </div>
 
@@ -218,7 +224,7 @@ export default function AdminIngredients() {
         <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre o SKU..."
+            placeholder={t('adminIngredients.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10 rounded-xl text-xs"
@@ -231,10 +237,10 @@ export default function AdminIngredients() {
         >
           <TabsList className="rounded-xl p-1 bg-secondary/60">
             <TabsTrigger value="all" className="rounded-lg text-xs font-semibold">
-              Todos ({ingredients.length})
+              {t('adminIngredients.tabAll', { count: ingredients.length })}
             </TabsTrigger>
             <TabsTrigger value="low" className="rounded-lg text-xs font-semibold text-rose-600">
-              Stock Bajo
+              {t('adminIngredients.tabLowStock')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -245,21 +251,21 @@ export default function AdminIngredients() {
         {ingredients.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-2 text-xs">
             <Boxes className="w-8 h-8 mx-auto text-muted-foreground stroke-[1.5]" />
-            <p className="font-semibold text-foreground text-sm">No se encontraron ingredientes</p>
-            <p>Registra nuevos insumos para comenzar a descontar recetas automáticamente.</p>
+            <p className="font-semibold text-foreground text-sm">{t('adminIngredients.emptyTitle')}</p>
+            <p>{t('adminIngredients.emptyDesc')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-secondary/40 border-b border-border/60 text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
-                  <th className="p-4">Ingrediente</th>
+                  <th className="p-4">{t('adminIngredients.colIngredient')}</th>
                   <th className="p-4">SKU</th>
-                  <th className="p-4">Existencia</th>
-                  <th className="p-4">Mínimo / Máx</th>
-                  <th className="p-4">Costo Unitario</th>
-                  <th className="p-4">Estado</th>
-                  <th className="p-4 text-right">Acciones</th>
+                  <th className="p-4">{t('adminIngredients.colStock')}</th>
+                  <th className="p-4">{t('adminIngredients.colMinMax')}</th>
+                  <th className="p-4">{t('adminIngredients.colUnitCost')}</th>
+                  <th className="p-4">{t('common.status')}</th>
+                  <th className="p-4 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -271,7 +277,7 @@ export default function AdminIngredients() {
                         {ing.name}
                         {ing.supplier && (
                           <span className="text-[10px] text-muted-foreground block font-normal">
-                            Prov: {ing.supplier.name}
+                            {t('adminIngredients.supplierPrefix', { name: ing.supplier.name })}
                           </span>
                         )}
                       </td>
@@ -290,11 +296,11 @@ export default function AdminIngredients() {
                       <td className="p-4">
                         {low ? (
                           <Badge variant="destructive" className="text-[10px]">
-                            Stock bajo
+                            {t('adminIngredients.badgeLowStock')}
                           </Badge>
                         ) : (
                           <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
-                            Disponible
+                            {t('common.available')}
                           </Badge>
                         )}
                       </td>
@@ -306,7 +312,7 @@ export default function AdminIngredients() {
                           className="rounded-lg text-[11px] h-8 px-2.5"
                         >
                           <ArrowUpDown className="w-3 h-3 mr-1" />
-                          <span>Ajustar</span>
+                          <span>{t('adminIngredients.adjust')}</span>
                         </Button>
                         <Button
                           variant="ghost"
@@ -331,16 +337,16 @@ export default function AdminIngredients() {
         <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
-              {selectedIngredient ? 'Editar Ingrediente' : 'Nuevo Ingrediente'}
+              {selectedIngredient ? t('adminIngredients.editIngredient') : t('adminIngredients.newIngredient')}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-xs">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Nombre del Ingrediente</Label>
-                <Input {...register('name')} placeholder="Ej. Café Arábica Grano" className="h-9 rounded-xl" />
-                {errors.name && <p className="text-rose-500 text-[10px]">{errors.name.message}</p>}
+                <Label className="text-xs">{t('adminIngredients.fieldName')}</Label>
+                <Input {...register('name')} placeholder={t('adminIngredients.fieldNamePlaceholder')} className="h-9 rounded-xl" />
+                {errors.name && <p className="text-rose-500 text-[10px]">{t(errors.name.message as string)}</p>}
               </div>
 
               <div className="space-y-1">
@@ -349,37 +355,37 @@ export default function AdminIngredients() {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">Unidad de Medida</Label>
-                <Input {...register('unit')} placeholder="gramos, ml, unidades" className="h-9 rounded-xl" />
+                <Label className="text-xs">{t('adminIngredients.fieldUnit')}</Label>
+                <Input {...register('unit')} placeholder={t('adminIngredients.fieldUnitPlaceholder')} className="h-9 rounded-xl" />
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">Stock Actual</Label>
+                <Label className="text-xs">{t('adminIngredients.fieldCurrentStock')}</Label>
                 <Input type="number" step="any" {...register('currentStock', { valueAsNumber: true })} className="h-9 rounded-xl" />
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">Stock Mínimo (Alerta)</Label>
+                <Label className="text-xs">{t('adminIngredients.fieldMinStock')}</Label>
                 <Input type="number" step="any" {...register('minStock', { valueAsNumber: true })} className="h-9 rounded-xl" />
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">Stock Máximo</Label>
+                <Label className="text-xs">{t('adminIngredients.fieldMaxStock')}</Label>
                 <Input type="number" step="any" {...register('maxStock', { valueAsNumber: true })} className="h-9 rounded-xl" />
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">Costo Unitario ($)</Label>
+                <Label className="text-xs">{t('adminIngredients.fieldCostPerUnit')}</Label>
                 <Input type="number" step="any" {...register('costPerUnit', { valueAsNumber: true })} className="h-9 rounded-xl" />
               </div>
 
               <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Proveedor Asignado</Label>
+                <Label className="text-xs">{t('adminIngredients.fieldSupplier')}</Label>
                 <select
                   {...register('supplierId')}
                   className="w-full h-9 rounded-xl border border-input bg-card px-3 text-xs focus:outline-none"
                 >
-                  <option value="">Sin proveedor específico</option>
+                  <option value="">{t('adminIngredients.noSupplier')}</option>
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
@@ -391,10 +397,10 @@ export default function AdminIngredients() {
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="rounded-xl">
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit" size="sm" className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white">
-                Guardar
+                {t('common.save')}
               </Button>
             </DialogFooter>
           </form>
@@ -406,28 +412,28 @@ export default function AdminIngredients() {
         <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
-              Ajustar Existencia · {selectedIngredient?.name}
+              {t('adminIngredients.adjustTitle')} · {selectedIngredient?.name}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleStockSubmit(onStockAdjust)} className="space-y-4 text-xs">
             <div className="space-y-1">
-              <Label className="text-xs">Tipo de Movimiento</Label>
+              <Label className="text-xs">{t('adminIngredients.movementType')}</Label>
               <select
                 {...registerStock('type')}
                 className="w-full h-9 rounded-xl border border-input bg-card px-3 text-xs focus:outline-none"
               >
-                <option value="STOCK_RECEIVED">Entrada de Proveedor (STOCK_RECEIVED)</option>
-                <option value="STOCK_ADDED">Adición Manual (+ Stock)</option>
-                <option value="STOCK_DEDUCTED">Deducción Manual (- Stock)</option>
-                <option value="MANUAL_ADJUSTMENT">Ajuste de Conteo Físico</option>
-                <option value="WASTE">Merma / Desperdicio</option>
-                <option value="DAMAGED">Insumo Dañado</option>
+                <option value="RECEIVED">{t('adminIngredients.typeReceived')}</option>
+                <option value="ADDED">{t('adminIngredients.typeAdded')}</option>
+                <option value="DEDUCTED">{t('adminIngredients.typeDeducted')}</option>
+                <option value="ADJUSTMENT">{t('adminIngredients.typeAdjustment')}</option>
+                <option value="WASTE">{t('adminIngredients.typeWaste')}</option>
+                <option value="DAMAGED">{t('adminIngredients.typeDamaged')}</option>
               </select>
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Cantidad ({selectedIngredient?.unit})</Label>
+              <Label className="text-xs">{t('adminIngredients.quantityLabel', { unit: selectedIngredient?.unit ?? '' })}</Label>
               <Input
                 type="number"
                 step="any"
@@ -435,25 +441,25 @@ export default function AdminIngredients() {
                 className="h-9 rounded-xl"
               />
               {stockErrors.quantity && (
-                <p className="text-rose-500 text-[10px]">{stockErrors.quantity.message}</p>
+                <p className="text-rose-500 text-[10px]">{t(stockErrors.quantity.message as string)}</p>
               )}
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Notas / Justificación</Label>
+              <Label className="text-xs">{t('adminIngredients.notesLabel')}</Label>
               <Textarea
                 {...registerStock('notes')}
-                placeholder="Motivo del ajuste..."
+                placeholder={t('adminIngredients.notesPlaceholder')}
                 className="rounded-xl resize-none min-h-[60px]"
               />
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setStockDialogOpen(false)} className="rounded-xl">
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit" size="sm" className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white">
-                Confirmar Ajuste
+                {t('adminIngredients.confirmAdjust')}
               </Button>
             </DialogFooter>
           </form>

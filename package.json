@@ -2,6 +2,12 @@
   "name": "cafe-management-system",
   "version": "1.0.0",
   "description": "Production-quality Café Order and Inventory Management System",
+  "author": {
+    "name": "Norynt",
+    "url": "https://www.norynt.app"
+  },
+  "license": "MIT",
+  "homepage": "https://www.norynt.app",
   "private": true,
   "workspaces": [
     "client",
@@ -23,6 +29,7 @@
     "db:push": "npm run db:push --workspace=server",
     "db:migrate": "npm run db:migrate --workspace=server",
     "db:seed": "npm run db:seed --workspace=server",
+    "db:repair-images": "npm run db:repair-images --workspace=server",
     "db:studio": "npm run db:studio --workspace=server"
   },
   "devDependencies": {

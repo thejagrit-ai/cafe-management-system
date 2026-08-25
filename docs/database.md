@@ -139,3 +139,7 @@ For a database that already has the tables, baseline instead of migrating:
 ```bash
 cd server && npx prisma migrate resolve --applied 0_init
 ```
+
+---
+
+Developed and owned by **Norynt** — [www.norynt.app](https://www.norynt.app)

@@ -1,5 +1,6 @@
 import React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -18,16 +19,17 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/
 
 const settingsSchema = z.object({
   taxRate: z.number().min(0).max(100),
-  currency: z.string().length(3, 'Use un código de 3 letras'),
+  currency: z.string().length(3, 'validation.currencyCode3'),
   deliveryFee: z.number().min(0),
   allowOutOfStockOrders: z.boolean(),
-  openingTime: z.string().regex(TIME_PATTERN, 'Formato HH:MM').or(z.literal('')),
-  closingTime: z.string().regex(TIME_PATTERN, 'Formato HH:MM').or(z.literal('')),
+  openingTime: z.string().regex(TIME_PATTERN, 'validation.timeFormat').or(z.literal('')),
+  closingTime: z.string().regex(TIME_PATTERN, 'validation.timeFormat').or(z.literal('')),
 })
 
 type SettingsFormData = z.infer<typeof settingsSchema>
 
 export default function AdminSettings() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -57,9 +59,9 @@ export default function AdminSettings() {
     mutationFn: (formData: SettingsFormData) => settingsApi.update(formData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
-      toast.success('Configuración guardada correctamente')
+      toast.success(t('adminSettings.saved'))
     },
-    onError: (err: any) => toast.error(err.message || 'Error al guardar configuración'),
+    onError: (err: any) => toast.error(err.message || t('adminSettings.saveError')),
   })
 
   const onSubmit = (formData: SettingsFormData) => {
@@ -80,10 +82,10 @@ export default function AdminSettings() {
       {/* Header */}
       <div className="border-b border-border/60 pb-5">
         <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight">
-          Configuración del Negocio
+          {t('adminSettings.title')}
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
-          Parámetros fiscales, tarifas de domicilio, datos de contacto y políticas operativas.
+          {t('adminSettings.subtitle')}
         </p>
       </div>
 
@@ -91,49 +93,49 @@ export default function AdminSettings() {
         {/* Business Identity */}
         <div className="p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
           <h2 className="font-serif font-bold text-base text-foreground">
-            Horario de Atención
+            {t('adminSettings.hoursSection')}
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs">Hora de Apertura (HH:MM)</Label>
+              <Label className="text-xs">{t('adminSettings.openingTime')}</Label>
               <Input
                 {...register('openingTime')}
                 placeholder="07:00"
                 className="h-9 rounded-xl text-xs font-mono"
               />
               {errors.openingTime && (
-                <p className="text-rose-500 text-[10px]">{errors.openingTime.message}</p>
+                <p className="text-rose-500 text-[10px]">{t(errors.openingTime.message as string)}</p>
               )}
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Hora de Cierre (HH:MM)</Label>
+              <Label className="text-xs">{t('adminSettings.closingTime')}</Label>
               <Input
                 {...register('closingTime')}
                 placeholder="21:00"
                 className="h-9 rounded-xl text-xs font-mono"
               />
               {errors.closingTime && (
-                <p className="text-rose-500 text-[10px]">{errors.closingTime.message}</p>
+                <p className="text-rose-500 text-[10px]">{t(errors.closingTime.message as string)}</p>
               )}
             </div>
           </div>
 
           <p className="text-[10px] text-muted-foreground">
-            Este horario se muestra en la página pública del café.
+            {t('adminSettings.hoursNote')}
           </p>
         </div>
 
         {/* Pricing & Taxes */}
         <div className="p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
           <h2 className="font-serif font-bold text-base text-foreground">
-            Tarifas, Impuestos & Moneda
+            {t('adminSettings.pricingSection')}
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <Label className="text-xs">Impuesto IVA / Impoconsumo (%)</Label>
+              <Label className="text-xs">{t('adminSettings.taxRate')}</Label>
               <Input
                 type="number"
                 step="any"
@@ -143,7 +145,7 @@ export default function AdminSettings() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Costo Base de Domicilio (COP)</Label>
+              <Label className="text-xs">{t('adminSettings.deliveryFee')}</Label>
               <Input
                 type="number"
                 step="any"
@@ -153,10 +155,10 @@ export default function AdminSettings() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Código de Moneda</Label>
+              <Label className="text-xs">{t('adminSettings.currencyCode')}</Label>
               <Input {...register('currency')} className="h-9 rounded-xl text-xs font-mono" />
               {errors.currency && (
-                <p className="text-rose-500 text-[10px]">{errors.currency.message}</p>
+                <p className="text-rose-500 text-[10px]">{t(errors.currency.message as string)}</p>
               )}
             </div>
           </div>
@@ -165,7 +167,7 @@ export default function AdminSettings() {
         {/* Operational Policies */}
         <div className="p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
           <h2 className="font-serif font-bold text-base text-foreground">
-            Políticas Operativas
+            {t('adminSettings.policiesSection')}
           </h2>
 
           <label className="flex items-start gap-3 cursor-pointer">
@@ -176,10 +178,10 @@ export default function AdminSettings() {
             />
             <div>
               <span className="font-semibold text-foreground text-xs block">
-                Permitir pedidos de productos sin stock registrado
+                {t('adminSettings.allowOutOfStock')}
               </span>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Si está desactivado, el sistema impedirá que los clientes agreguen al carrito productos marcados como agotados o sin insumos suficientes.
+                {t('adminSettings.allowOutOfStockHelp')}
               </p>
             </div>
           </label>
@@ -193,7 +195,7 @@ export default function AdminSettings() {
             className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white px-6 h-11 text-xs font-semibold shadow-sm hover:shadow-violet-glow transition-all"
           >
             <Save className="w-4 h-4 mr-2" />
-            <span>Guardar Configuración</span>
+            <span>{t('adminSettings.save')}</span>
           </Button>
         </div>
       </form>

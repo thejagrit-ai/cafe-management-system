@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ConsoleFooter } from '@/components/ConsoleFooter'
 import { Button } from '@/components/ui/button'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -48,7 +49,7 @@ export default function AdminLayout() {
       group: t('admin.navOperation'),
       items: [
         { href: '/admin/orders', label: t('admin.orders'), icon: ShoppingCart },
-        { href: '/admin/tables', label: 'Mesas & QR', icon: QrCode },
+        { href: '/admin/tables', label: t('admin.tables'), icon: QrCode },
         { href: '/admin/products', label: t('admin.products'), icon: Package },
         { href: '/admin/categories', label: t('admin.categories'), icon: Tag },
         { href: '/admin/ingredients', label: t('admin.inventory'), icon: Boxes },
@@ -78,11 +79,15 @@ export default function AdminLayout() {
     },
   ]
 
-  const NavContent = () => (
-    <div className="flex flex-col h-full justify-between">
-      <div>
+  // Built as an element rather than a nested component: declaring a component
+  // inside the render body gives React a brand-new component type on every
+  // pass, so the whole sidebar unmounted and remounted on each navigation and
+  // lost its scroll position along the way.
+  const navContent = (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         {/* Brand Header */}
-        <div className="p-5 border-b border-border/80 flex items-center justify-between">
+        <div className="shrink-0 p-5 border-b border-border/80 flex items-center justify-between">
           <Link to="/admin" className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-[#7C4EEE] text-white flex items-center justify-center font-bold shadow-xs">
               <Coffee className="h-5 w-5" />
@@ -92,14 +97,16 @@ export default function AdminLayout() {
                 Café Origen
               </span>
               <span className="text-[10px] tracking-wider uppercase font-semibold text-muted-foreground">
-                SaaS Admin
+                {t('admin.brandTagline')}
               </span>
             </div>
           </Link>
         </div>
 
-        {/* Navigation */}
-        <nav className="p-3.5 space-y-5 overflow-y-auto max-h-[calc(100vh-210px)] scrollbar-none">
+        {/* Navigation. Flexes into whatever height is left rather than a
+            hardcoded viewport calculation, which cut the last nav group off on
+            short laptop screens. */}
+        <nav className="min-h-0 flex-1 overflow-y-auto p-3.5 space-y-5 scrollbar-none">
           {navigationGroups.map((group, idx) => (
             <div key={idx} className="space-y-1">
               <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
@@ -134,13 +141,13 @@ export default function AdminLayout() {
       </div>
 
       {/* Bottom Profile & Actions */}
-      <div className="p-4 border-t border-border/80 space-y-3 bg-card">
+      <div className="shrink-0 p-4 border-t border-border/80 space-y-3 bg-card">
         <div className="px-2">
           <p className="text-xs font-semibold text-foreground truncate">
             {user?.email}
           </p>
           <span className="text-[10px] text-[#7C4EEE] uppercase font-bold tracking-wider">
-            Administrador
+            {t('admin.roleAdmin')}
           </span>
         </div>
 
@@ -161,7 +168,7 @@ export default function AdminLayout() {
     <div className="flex min-h-screen bg-secondary/20 text-foreground font-sans transition-colors duration-200">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 bg-card border-r border-border flex-col shrink-0 sticky top-0 h-screen">
-        <NavContent />
+        {navContent}
       </aside>
 
       {/* Mobile Drawer */}
@@ -172,7 +179,7 @@ export default function AdminLayout() {
             onClick={() => setMobileOpen(false)}
           />
           <div className="fixed inset-y-0 left-0 w-72 bg-card border-r border-border z-10 shadow-2xl">
-            <NavContent />
+            {navContent}
           </div>
         </div>
       )}
@@ -207,6 +214,8 @@ export default function AdminLayout() {
             <Outlet />
           </ErrorBoundary>
         </main>
+
+        <ConsoleFooter />
       </div>
     </div>
   )

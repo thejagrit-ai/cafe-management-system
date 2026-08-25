@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,10 +24,10 @@ const getErrorMessage = (err: any, fallback: string): string => {
 }
 
 const employeeSchema = z.object({
-  email: z.string().email('Correo inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
-  firstName: z.string().min(1, 'El nombre es obligatorio'),
-  lastName: z.string().min(1, 'El apellido es obligatorio'),
+  email: z.string().email('validation.invalidEmail'),
+  password: z.string().min(8, 'validation.passwordMin8'),
+  firstName: z.string().min(1, 'validation.nameRequired'),
+  lastName: z.string().min(1, 'validation.lastNameRequired'),
   phone: z.string().optional(),
   position: z.string().optional(),
 })
@@ -34,8 +35,8 @@ const employeeSchema = z.object({
 type EmployeeFormData = z.infer<typeof employeeSchema>
 
 const editEmployeeSchema = z.object({
-  firstName: z.string().min(1, 'El nombre es obligatorio'),
-  lastName: z.string().min(1, 'El apellido es obligatorio'),
+  firstName: z.string().min(1, 'validation.nameRequired'),
+  lastName: z.string().min(1, 'validation.lastNameRequired'),
   phone: z.string().optional(),
   position: z.string().optional(),
   isActive: z.boolean(),
@@ -44,12 +45,13 @@ const editEmployeeSchema = z.object({
 type EditEmployeeFormData = z.infer<typeof editEmployeeSchema>
 
 const resetPasswordSchema = z.object({
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
+  password: z.string().min(8, 'validation.passwordMin8'),
 })
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 
 export default function AdminEmployees() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -98,11 +100,11 @@ export default function AdminEmployees() {
     mutationFn: (data: EmployeeFormData) => employeesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
-      toast.success('Empleado registrado exitosamente')
+      toast.success(t('adminEmployees.created'))
       setDialogOpen(false)
       reset()
     },
-    onError: (err: any) => toast.error(getErrorMessage(err, 'Error al registrar empleado')),
+    onError: (err: any) => toast.error(getErrorMessage(err, t('adminEmployees.createError'))),
   })
 
   const updateMutation = useMutation({
@@ -110,24 +112,24 @@ export default function AdminEmployees() {
       employeesApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
-      toast.success('Información actualizada')
+      toast.success(t('adminEmployees.updated'))
       setEditDialogOpen(false)
       setSelectedEmployee(null)
       resetEdit()
     },
-    onError: (err: any) => toast.error(getErrorMessage(err, 'Error al actualizar empleado')),
+    onError: (err: any) => toast.error(getErrorMessage(err, t('adminEmployees.updateError'))),
   })
 
   const resetPasswordMutation = useMutation({
     mutationFn: ({ id, password }: { id: string; password: string }) =>
       employeesApi.resetPassword(id, password),
     onSuccess: () => {
-      toast.success('Contraseña restablecida correctamente')
+      toast.success(t('adminEmployees.passwordReset'))
       setResetPasswordDialogOpen(false)
       setSelectedEmployee(null)
       resetResetPassword()
     },
-    onError: (err: any) => toast.error(getErrorMessage(err, 'Error al restablecer contraseña')),
+    onError: (err: any) => toast.error(getErrorMessage(err, t('adminEmployees.resetError'))),
   })
 
   const employees = data?.data ?? []
@@ -180,10 +182,10 @@ export default function AdminEmployees() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight">
-            Equipo & Personal de Barra
+            {t('adminEmployees.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Gestión de usuarios con rol Staff para la consola de cocina y baristas.
+            {t('adminEmployees.subtitle')}
           </p>
         </div>
 
@@ -196,7 +198,7 @@ export default function AdminEmployees() {
           className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold"
         >
           <Plus className="mr-1.5 h-4 w-4" />
-          <span>Nuevo Empleado</span>
+          <span>{t('adminEmployees.newEmployee')}</span>
         </Button>
       </div>
 
@@ -205,7 +207,7 @@ export default function AdminEmployees() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre, cargo o correo..."
+            placeholder={t('adminEmployees.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10 rounded-xl text-xs"
@@ -218,19 +220,19 @@ export default function AdminEmployees() {
         {employees.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-2 text-xs">
             <Users className="w-8 h-8 mx-auto text-muted-foreground stroke-[1.5]" />
-            <p className="font-semibold text-foreground text-sm">No hay empleados registrados</p>
+            <p className="font-semibold text-foreground text-sm">{t('adminEmployees.empty')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-secondary/40 border-b border-border/60 text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
-                  <th className="p-4">Empleado</th>
-                  <th className="p-4">Cargo</th>
-                  <th className="p-4">Correo Electrónico</th>
-                  <th className="p-4">Teléfono</th>
-                  <th className="p-4">Estado</th>
-                  <th className="p-4 text-right">Acciones</th>
+                  <th className="p-4">{t('adminEmployees.colEmployee')}</th>
+                  <th className="p-4">{t('adminEmployees.colPosition')}</th>
+                  <th className="p-4">{t('adminEmployees.colEmail')}</th>
+                  <th className="p-4">{t('adminEmployees.colPhone')}</th>
+                  <th className="p-4">{t('common.status')}</th>
+                  <th className="p-4 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -241,7 +243,7 @@ export default function AdminEmployees() {
                     </td>
                     <td className="p-4 text-muted-foreground">
                       <Badge variant="outline" className="text-[10px]">
-                        {emp.position || 'Barista'}
+                        {emp.position || t('adminEmployees.defaultPosition')}
                       </Badge>
                     </td>
                     <td className="p-4 text-muted-foreground font-mono">{emp.user?.email}</td>
@@ -254,7 +256,7 @@ export default function AdminEmployees() {
                             : 'bg-zinc-100 text-zinc-600 text-[10px]'
                         }
                       >
-                        {emp.isActive ? 'Activo' : 'Inactivo'}
+                        {emp.isActive ? t('common.active') : t('common.inactive')}
                       </Badge>
                     </td>
                     <td className="p-4 text-right space-x-1">
@@ -263,7 +265,7 @@ export default function AdminEmployees() {
                         size="sm"
                         onClick={() => handleResetPassword(emp)}
                         className="rounded-lg text-[11px] h-8 px-2"
-                        title="Restablecer contraseña"
+                        title={t('adminEmployees.resetPasswordAction')}
                       >
                         <KeyRound className="w-3.5 h-3.5 text-amber-600" />
                       </Button>
@@ -274,7 +276,7 @@ export default function AdminEmployees() {
                         className="rounded-lg text-[11px] h-8 px-2.5"
                       >
                         <Edit2 className="w-3 h-3 mr-1" />
-                        <span>Editar</span>
+                        <span>{t('common.edit')}</span>
                       </Button>
                     </td>
                   </tr>
@@ -289,7 +291,12 @@ export default function AdminEmployees() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4 border-t border-border/60 text-xs text-muted-foreground">
           <p>
-            Página {pagination.page} de {pagination.totalPages} ({pagination.total} empleados)
+            {t('common.pageOf', {
+              page: pagination.page,
+              totalPages: pagination.totalPages,
+              total: pagination.total,
+              unit: t('adminEmployees.unit'),
+            })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -300,7 +307,7 @@ export default function AdminEmployees() {
               className="rounded-xl"
             >
               <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-              <span>Anterior</span>
+              <span>{t('common.previous')}</span>
             </Button>
             <Button
               variant="outline"
@@ -309,7 +316,7 @@ export default function AdminEmployees() {
               disabled={page >= pagination.totalPages}
               className="rounded-xl"
             >
-              <span>Siguiente</span>
+              <span>{t('common.next')}</span>
               <ChevronRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>
@@ -320,52 +327,52 @@ export default function AdminEmployees() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="font-serif text-lg">Nuevo Miembro del Equipo</DialogTitle>
+            <DialogTitle className="font-serif text-lg">{t('adminEmployees.newMemberTitle')}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-xs">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Nombre *</Label>
-                <Input {...register('firstName')} placeholder="Andrés" className="h-9 rounded-xl" />
-                {errors.firstName && <p className="text-rose-500 text-[10px]">{errors.firstName.message}</p>}
+                <Label className="text-xs">{t('adminEmployees.fieldFirstNameRequired')}</Label>
+                <Input {...register('firstName')} placeholder={t('adminEmployees.fieldFirstNamePlaceholder')} className="h-9 rounded-xl" />
+                {errors.firstName && <p className="text-rose-500 text-[10px]">{t(errors.firstName.message as string)}</p>}
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">Apellido *</Label>
-                <Input {...register('lastName')} placeholder="Gómez" className="h-9 rounded-xl" />
-                {errors.lastName && <p className="text-rose-500 text-[10px]">{errors.lastName.message}</p>}
+                <Label className="text-xs">{t('adminEmployees.fieldLastNameRequired')}</Label>
+                <Input {...register('lastName')} placeholder={t('adminEmployees.fieldLastNamePlaceholder')} className="h-9 rounded-xl" />
+                {errors.lastName && <p className="text-rose-500 text-[10px]">{t(errors.lastName.message as string)}</p>}
               </div>
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Cargo / Rol en Local</Label>
-              <Input {...register('position')} placeholder="Ej. Barista Líder / Cocinero" className="h-9 rounded-xl" />
+              <Label className="text-xs">{t('adminEmployees.fieldPosition')}</Label>
+              <Input {...register('position')} placeholder={t('adminEmployees.fieldPositionPlaceholder')} className="h-9 rounded-xl" />
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Correo Electrónico (Acceso) *</Label>
+              <Label className="text-xs">{t('adminEmployees.fieldEmail')}</Label>
               <Input type="email" {...register('email')} placeholder="andres@cafe.com" className="h-9 rounded-xl" />
-              {errors.email && <p className="text-rose-500 text-[10px]">{errors.email.message}</p>}
+              {errors.email && <p className="text-rose-500 text-[10px]">{t(errors.email.message as string)}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Contraseña Inicial *</Label>
+              <Label className="text-xs">{t('adminEmployees.fieldPassword')}</Label>
               <Input type="password" {...register('password')} placeholder="••••••••" className="h-9 rounded-xl" />
-              {errors.password && <p className="text-rose-500 text-[10px]">{errors.password.message}</p>}
+              {errors.password && <p className="text-rose-500 text-[10px]">{t(errors.password.message as string)}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Teléfono</Label>
+              <Label className="text-xs">{t('adminEmployees.fieldPhone')}</Label>
               <Input {...register('phone')} placeholder="+57 300 000 0000" className="h-9 rounded-xl" />
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="rounded-xl">
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit" size="sm" className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white">
-                Crear Empleado
+                {t('adminEmployees.create')}
               </Button>
             </DialogFooter>
           </form>
@@ -376,44 +383,44 @@ export default function AdminEmployees() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="font-serif text-lg">Editar Información del Empleado</DialogTitle>
+            <DialogTitle className="font-serif text-lg">{t('adminEmployees.editTitle')}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleEditSubmit(onEditSubmit)} className="space-y-4 text-xs">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Nombre</Label>
+                <Label className="text-xs">{t('adminEmployees.fieldFirstName')}</Label>
                 <Input {...registerEdit('firstName')} className="h-9 rounded-xl" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Apellido</Label>
+                <Label className="text-xs">{t('adminEmployees.fieldLastName')}</Label>
                 <Input {...registerEdit('lastName')} className="h-9 rounded-xl" />
               </div>
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Cargo</Label>
+              <Label className="text-xs">{t('adminEmployees.colPosition')}</Label>
               <Input {...registerEdit('position')} className="h-9 rounded-xl" />
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Teléfono</Label>
+              <Label className="text-xs">{t('adminEmployees.fieldPhone')}</Label>
               <Input {...registerEdit('phone')} className="h-9 rounded-xl" />
             </div>
 
             <div className="flex items-center pt-1">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" {...registerEdit('isActive')} className="rounded accent-[#7C4EEE]" />
-                <span className="text-xs">Empleado Activo</span>
+                <span className="text-xs">{t('adminEmployees.activeToggle')}</span>
               </label>
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setEditDialogOpen(false)} className="rounded-xl">
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit" size="sm" className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white">
-                Guardar Cambios
+                {t('adminEmployees.saveChanges')}
               </Button>
             </DialogFooter>
           </form>
@@ -425,28 +432,28 @@ export default function AdminEmployees() {
         <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
-              Restablecer Contraseña · {selectedEmployee?.firstName}
+              {t('adminEmployees.resetPasswordTitle')} · {selectedEmployee?.firstName}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleResetSubmit(onResetSubmit)} className="space-y-4 text-xs">
             <div className="space-y-1">
-              <Label className="text-xs">Nueva Contraseña</Label>
+              <Label className="text-xs">{t('adminEmployees.newPassword')}</Label>
               <Input
                 type="password"
                 {...registerReset('password')}
-                placeholder="Mínimo 8 caracteres"
+                placeholder={t('adminEmployees.newPasswordPlaceholder')}
                 className="h-9 rounded-xl"
               />
-              {resetErrors.password && <p className="text-rose-500 text-[10px]">{resetErrors.password.message}</p>}
+              {resetErrors.password && <p className="text-rose-500 text-[10px]">{t(resetErrors.password.message as string)}</p>}
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setResetPasswordDialogOpen(false)} className="rounded-xl">
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit" size="sm" className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white">
-                Actualizar Contraseña
+                {t('adminEmployees.updatePassword')}
               </Button>
             </DialogFooter>
           </form>

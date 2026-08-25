@@ -16,7 +16,17 @@ export function useRealtimeEvents() {
 
       try {
         const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) || '/api';
-        const eventsUrl = apiUrl.startsWith('http') ? `${apiUrl}/events` : '/api/events';
+
+        // EventSource cannot set an Authorization header, so the access token
+        // rides along as a query parameter. Without it the server sees an
+        // anonymous listener whenever the browser drops the cross-site cookie,
+        // and filters out every ADMIN/STAFF-targeted event — which is why live
+        // inventory refreshes and low-stock warnings worked locally but not on
+        // the deployed site. The token is re-read on each reconnect, so a
+        // refreshed session picks up the new one.
+        const token = localStorage.getItem('accessToken')
+        const eventsUrl = `${apiUrl}/events${token ? `?token=${encodeURIComponent(token)}` : ''}`
+
         const es = new EventSource(eventsUrl, { withCredentials: true });
         eventSourceRef.current = es;
 

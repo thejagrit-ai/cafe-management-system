@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Coffee, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCart } from '@/contexts/CartContext'
+import { SmartImage } from '@/components/SmartImage'
 import { formatCurrency, cn } from '@/utils/lib'
 import type { Product } from '@/types'
 
@@ -32,24 +33,23 @@ export function ProductCard({ product, className }: { product: Product; classNam
         className="relative block aspect-[4/3] overflow-hidden bg-secondary"
         tabIndex={isUnavailable ? -1 : undefined}
       >
-        {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-        ) : (
-          <div
-            className="flex h-full w-full items-center justify-center"
-            style={{
-              backgroundImage:
-                'radial-gradient(ellipse at 50% 30%, rgba(199,161,122,0.22) 0%, transparent 65%)',
-            }}
-          >
-            <Coffee className="h-12 w-12 text-brand-gold/40" aria-hidden="true" />
-          </div>
-        )}
+        <SmartImage
+          src={product.imageUrl}
+          alt={product.name}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          fallback={
+            <div
+              className="flex h-full w-full items-center justify-center"
+              style={{
+                backgroundImage:
+                  'radial-gradient(ellipse at 50% 30%, rgba(199,161,122,0.22) 0%, transparent 65%)',
+              }}
+            >
+              <Coffee className="h-12 w-12 text-brand-gold/40" aria-hidden="true" />
+            </div>
+          }
+        />
 
         {(isUnavailable || isLimited) && (
           <span

@@ -7,7 +7,7 @@ export interface IngredientQueryParams extends PaginationParams {
 }
 
 export interface StockAdjustmentData {
-  type: 'STOCK_RECEIVED' | 'STOCK_ADDED' | 'STOCK_DEDUCTED' | 'MANUAL_ADJUSTMENT' | 'WASTE' | 'DAMAGED';
+  type: 'RECEIVED' | 'ADDED' | 'DEDUCTED' | 'ADJUSTMENT' | 'WASTE' | 'DAMAGED';
   quantity: number;
   unitCost?: number;
   notes?: string;

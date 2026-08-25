@@ -30,6 +30,8 @@ import {
   Check
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslation, Trans } from 'react-i18next'
+import { SmartImage } from '@/components/SmartImage'
 
 const SAMPLE_PHOTOS = [
   { name: 'Americano', url: '/assets/products/americano.jpg' },
@@ -57,9 +59,10 @@ const productSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio'),
   description: z.string().optional(),
   price: z.number().min(0.01, 'El precio debe ser mayor a 0'),
-  categoryId: z.string().min(1, 'La categoría es obligatoria'),
+  categoryId: z.string().min(1, 'validation.categoryRequired'),
   imageUrl: z.string().optional(),
   availability: z.enum(['AVAILABLE', 'UNAVAILABLE', 'LIMITED']),
+  availabilityLocked: z.boolean().default(false),
   isFeatured: z.boolean(),
   isPopular: z.boolean(),
   sortOrder: z.number().min(0)
@@ -68,6 +71,7 @@ const productSchema = z.object({
 type ProductFormData = z.infer<typeof productSchema>
 
 export default function AdminProducts() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -114,6 +118,7 @@ export default function AdminProducts() {
       categoryId: '',
       imageUrl: '',
       availability: 'AVAILABLE',
+      availabilityLocked: false,
       isFeatured: false,
       isPopular: false,
       sortOrder: 0
@@ -127,11 +132,11 @@ export default function AdminProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       queryClient.invalidateQueries({ queryKey: ['menu-products'] })
-      toast.success('Producto creado con éxito')
+      toast.success(t('adminProducts.created'))
       setDialogOpen(false)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al crear producto')
+    onError: (err: any) => toast.error(err.message || t('adminProducts.createError'))
   })
 
   const updateMutation = useMutation({
@@ -140,12 +145,12 @@ export default function AdminProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       queryClient.invalidateQueries({ queryKey: ['menu-products'] })
-      toast.success('Producto actualizado')
+      toast.success(t('adminProducts.updated'))
       setDialogOpen(false)
       setSelectedProduct(null)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al actualizar producto')
+    onError: (err: any) => toast.error(err.message || t('adminProducts.updateError'))
   })
 
   const deleteMutation = useMutation({
@@ -153,11 +158,11 @@ export default function AdminProducts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       queryClient.invalidateQueries({ queryKey: ['menu-products'] })
-      toast.success('Producto eliminado')
+      toast.success(t('adminProducts.deleted'))
       setDeleteDialogOpen(false)
       setSelectedProduct(null)
     },
-    onError: (err: any) => toast.error(err.message || 'Error al eliminar producto')
+    onError: (err: any) => toast.error(err.message || t('adminProducts.deleteError'))
   })
 
   const products = data?.data ?? []
@@ -169,12 +174,12 @@ export default function AdminProducts() {
     if (!file) return
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Por favor selecciona un archivo de imagen válido')
+      toast.error(t('adminProducts.invalidImageFile'))
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('La imagen no debe superar los 5MB')
+      toast.error(t('adminProducts.imageTooLarge'))
       return
     }
 
@@ -182,7 +187,7 @@ export default function AdminProducts() {
     reader.onload = () => {
       const result = reader.result as string
       setValue('imageUrl', result, { shouldValidate: true })
-      toast.success('Foto cargada correctamente')
+      toast.success(t('adminProducts.photoLoaded'))
     }
     reader.readAsDataURL(file)
   }
@@ -195,6 +200,7 @@ export default function AdminProducts() {
     setValue('categoryId', prod.categoryId)
     setValue('imageUrl', prod.imageUrl ?? '')
     setValue('availability', prod.availability)
+    setValue('availabilityLocked', prod.availabilityLocked ?? false)
     setValue('isFeatured', prod.isFeatured)
     setValue('isPopular', prod.isPopular)
     setValue('sortOrder', prod.sortOrder)
@@ -234,10 +240,10 @@ export default function AdminProducts() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight">
-            Catálogo de Productos
+            {t('adminProducts.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Administra fotos, precios, descripciones, categorías y disponibilidad del menú.
+            {t('adminProducts.subtitle')}
           </p>
         </div>
 
@@ -251,6 +257,7 @@ export default function AdminProducts() {
               categoryId: categories[0]?.id || '',
               imageUrl: '',
               availability: 'AVAILABLE',
+              availabilityLocked: false,
               isFeatured: false,
               isPopular: false,
               sortOrder: 0
@@ -261,7 +268,7 @@ export default function AdminProducts() {
           className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold shadow-sm"
         >
           <Plus className="mr-1.5 h-4 w-4" />
-          <span>Nuevo Producto</span>
+          <span>{t('adminProducts.newProduct')}</span>
         </Button>
       </div>
 
@@ -270,7 +277,7 @@ export default function AdminProducts() {
         <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre o descripción..."
+            placeholder={t('adminProducts.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10 rounded-xl text-xs"
@@ -282,7 +289,7 @@ export default function AdminProducts() {
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="h-10 px-3.5 rounded-xl border border-border bg-card text-xs font-medium focus:outline-none"
         >
-          <option value="">Todas las Categorías</option>
+          <option value="">{t('adminProducts.allCategories')}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -296,20 +303,20 @@ export default function AdminProducts() {
         {products.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground space-y-2 text-xs">
             <Package className="w-8 h-8 mx-auto text-muted-foreground stroke-[1.5]" />
-            <p className="font-semibold text-foreground text-sm">No se encontraron productos</p>
-            <p>Comienza creando nuevos productos para mostrarlos en el menú público.</p>
+            <p className="font-semibold text-foreground text-sm">{t('adminProducts.emptyTitle')}</p>
+            <p>{t('adminProducts.emptyDesc')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-secondary/40 border-b border-border/60 text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                 <tr>
-                  <th className="p-4">Producto</th>
-                  <th className="p-4">Categoría</th>
-                  <th className="p-4">Precio</th>
-                  <th className="p-4">Disponibilidad</th>
-                  <th className="p-4">Etiquetas</th>
-                  <th className="p-4 text-right">Acciones</th>
+                  <th className="p-4">{t('adminProducts.colProduct')}</th>
+                  <th className="p-4">{t('adminProducts.colCategory')}</th>
+                  <th className="p-4">{t('adminProducts.colPrice')}</th>
+                  <th className="p-4">{t('adminProducts.colAvailability')}</th>
+                  <th className="p-4">{t('adminProducts.colTags')}</th>
+                  <th className="p-4 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -317,17 +324,16 @@ export default function AdminProducts() {
                   <tr key={prod.id} className="hover:bg-secondary/20 transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        {prod.imageUrl ? (
-                          <img
-                            src={prod.imageUrl}
-                            alt={prod.name}
-                            className="w-11 h-11 rounded-xl object-cover border border-border/80 shrink-0 bg-secondary"
-                          />
-                        ) : (
-                          <div className="w-11 h-11 rounded-xl bg-secondary border border-border/80 flex items-center justify-center text-muted-foreground shrink-0">
-                            <Coffee className="w-5 h-5 opacity-60" />
-                          </div>
-                        )}
+                        <SmartImage
+                          src={prod.imageUrl}
+                          alt={prod.name}
+                          className="w-11 h-11 rounded-xl object-cover border border-border/80 shrink-0 bg-secondary"
+                          fallback={
+                            <div className="w-11 h-11 rounded-xl bg-secondary border border-border/80 flex items-center justify-center text-muted-foreground shrink-0">
+                              <Coffee className="w-5 h-5 opacity-60" />
+                            </div>
+                          }
+                        />
                         <div>
                           <span className="font-semibold text-foreground block text-sm">
                             {prod.name}
@@ -341,7 +347,7 @@ export default function AdminProducts() {
                       </div>
                     </td>
                     <td className="p-4 font-medium text-foreground">
-                      {prod.category?.name || 'Sin categoría'}
+                      {prod.category?.name || t('adminProducts.noCategory')}
                     </td>
                     <td className="p-4 font-bold font-sans text-foreground text-sm">
                       {formatCurrency(Number(prod.price))}
@@ -357,19 +363,23 @@ export default function AdminProducts() {
                             : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
                         )}
                       >
-                        {prod.availability === 'AVAILABLE' ? 'Disponible' : prod.availability === 'LIMITED' ? 'Limitado' : 'Agotado'}
+                        {prod.availability === 'AVAILABLE'
+                          ? t('common.available')
+                          : prod.availability === 'LIMITED'
+                          ? t('common.limited')
+                          : t('common.soldOut')}
                       </Badge>
                     </td>
                     <td className="p-4">
                       <div className="flex gap-1.5">
                         {prod.isFeatured && (
                           <Badge className="bg-[#7C4EEE]/10 text-[#7C4EEE] border-[#7C4EEE]/20 text-[10px]">
-                            Destacado
+                            {t('adminProducts.tagFeatured')}
                           </Badge>
                         )}
                         {prod.isPopular && (
                           <Badge className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 text-[10px]">
-                            Popular
+                            {t('adminProducts.tagPopular')}
                           </Badge>
                         )}
                       </div>
@@ -382,7 +392,7 @@ export default function AdminProducts() {
                         className="rounded-lg text-[11px] h-8 px-2.5 hover:bg-secondary"
                       >
                         <Edit2 className="w-3.5 h-3.5 mr-1 text-[#7C4EEE]" />
-                        <span>Editar</span>
+                        <span>{t('common.edit')}</span>
                       </Button>
                       <Button
                         variant="ghost"
@@ -405,7 +415,12 @@ export default function AdminProducts() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4 border-t border-border/60 text-xs text-muted-foreground">
           <p>
-            Página {pagination.page} de {pagination.totalPages} ({pagination.total} productos en total)
+            {t('common.pageOf', {
+              page: pagination.page,
+              totalPages: pagination.totalPages,
+              total: pagination.total,
+              unit: t('adminProducts.unit'),
+            })}
           </p>
           <div className="flex gap-2">
             <Button
@@ -416,7 +431,7 @@ export default function AdminProducts() {
               className="rounded-xl"
             >
               <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-              <span>Anterior</span>
+              <span>{t('common.previous')}</span>
             </Button>
             <Button
               variant="outline"
@@ -425,7 +440,7 @@ export default function AdminProducts() {
               disabled={page >= pagination.totalPages}
               className="rounded-xl"
             >
-              <span>Siguiente</span>
+              <span>{t('common.next')}</span>
               <ChevronRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>
@@ -437,38 +452,38 @@ export default function AdminProducts() {
         <DialogContent className="sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-2xl bg-card border-border p-6 scrollbar-thin">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl font-bold">
-              {selectedProduct ? 'Editar Producto' : 'Nuevo Producto'}
+              {selectedProduct ? t('adminProducts.editProduct') : t('adminProducts.newProduct')}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-xs mt-2">
             {/* Name */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Nombre del Producto *</Label>
+              <Label className="text-xs font-semibold">{t('adminProducts.fieldName')}</Label>
               <Input
                 {...register('name')}
-                placeholder="Ej. Cappuccino Vainilla Francesa"
+                placeholder={t('adminProducts.fieldNamePlaceholder')}
                 className="h-10 rounded-xl"
               />
-              {errors.name && <p className="text-rose-500 text-[10px]">{errors.name.message}</p>}
+              {errors.name && <p className="text-rose-500 text-[10px]">{t(errors.name.message as string)}</p>}
             </div>
 
             {/* Price & Category */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Precio ($) *</Label>
+                <Label className="text-xs font-semibold">{t('adminProducts.fieldPrice')}</Label>
                 <Input
                   type="number"
                   step="any"
                   {...register('price', { valueAsNumber: true })}
                   className="h-10 rounded-xl"
-                  placeholder="Ej. 5.50"
+                  placeholder={t('adminProducts.fieldPricePlaceholder')}
                 />
-                {errors.price && <p className="text-rose-500 text-[10px]">{errors.price.message}</p>}
+                {errors.price && <p className="text-rose-500 text-[10px]">{t(errors.price.message as string)}</p>}
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Categoría *</Label>
+                <Label className="text-xs font-semibold">{t('adminProducts.fieldCategory')}</Label>
                 <select
                   {...register('categoryId')}
                   className="w-full h-10 rounded-xl border border-input bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-[#7C4EEE]"
@@ -479,7 +494,7 @@ export default function AdminProducts() {
                     </option>
                   ))}
                 </select>
-                {errors.categoryId && <p className="text-rose-500 text-[10px]">{errors.categoryId.message}</p>}
+                {errors.categoryId && <p className="text-rose-500 text-[10px]">{t(errors.categoryId.message as string)}</p>}
               </div>
             </div>
 
@@ -488,7 +503,7 @@ export default function AdminProducts() {
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold flex items-center gap-1.5">
                   <ImageIcon className="w-4 h-4 text-[#7C4EEE]" />
-                  <span>Foto del Producto</span>
+                  <span>{t('adminProducts.photoLabel')}</span>
                 </Label>
                 {currentImageUrl && (
                   <button
@@ -497,7 +512,7 @@ export default function AdminProducts() {
                     className="text-[11px] text-rose-500 hover:text-rose-600 flex items-center gap-1 transition-colors"
                   >
                     <X className="w-3 h-3" />
-                    <span>Quitar foto</span>
+                    <span>{t('adminProducts.removePhoto')}</span>
                   </button>
                 )}
               </div>
@@ -505,10 +520,16 @@ export default function AdminProducts() {
               {/* Photo Preview */}
               {currentImageUrl ? (
                 <div className="relative w-full h-40 rounded-xl overflow-hidden border border-border bg-card group">
-                  <img
+                  <SmartImage
                     src={currentImageUrl}
-                    alt="Vista previa"
+                    alt={t('adminProducts.previewAlt')}
                     className="w-full h-full object-cover"
+                    fallback={
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-secondary text-muted-foreground">
+                        <Coffee className="w-6 h-6 opacity-50" />
+                        <span className="text-[11px] font-medium">{t('adminProducts.imageLoadFailed')}</span>
+                      </div>
+                    }
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <Button
@@ -519,14 +540,14 @@ export default function AdminProducts() {
                       className="rounded-lg h-8 text-xs"
                     >
                       <X className="w-3.5 h-3.5 mr-1" />
-                      <span>Eliminar Foto</span>
+                      <span>{t('adminProducts.deletePhoto')}</span>
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="w-full h-24 rounded-xl border border-dashed border-border/80 flex flex-col items-center justify-center text-muted-foreground bg-card/50">
                   <ImageIcon className="w-6 h-6 mb-1 opacity-50" />
-                  <span className="text-[11px]">Sin foto seleccionada</span>
+                  <span className="text-[11px]">{t('adminProducts.noPhoto')}</span>
                 </div>
               )}
 
@@ -541,7 +562,7 @@ export default function AdminProducts() {
                   )}
                 >
                   <UploadCloud className="w-3.5 h-3.5" />
-                  <span>Subir Foto</span>
+                  <span>{t('adminProducts.tabUpload')}</span>
                 </button>
                 <button
                   type="button"
@@ -552,7 +573,7 @@ export default function AdminProducts() {
                   )}
                 >
                   <LinkIcon className="w-3.5 h-3.5" />
-                  <span>Pegar URL</span>
+                  <span>{t('adminProducts.tabUrl')}</span>
                 </button>
                 <button
                   type="button"
@@ -563,7 +584,7 @@ export default function AdminProducts() {
                   )}
                 >
                   <Coffee className="w-3.5 h-3.5" />
-                  <span>Galería Muestras</span>
+                  <span>{t('adminProducts.tabGallery')}</span>
                 </button>
               </div>
 
@@ -584,10 +605,10 @@ export default function AdminProducts() {
                     className="w-full h-11 rounded-xl border-dashed border-border hover:border-[#7C4EEE] hover:bg-[#7C4EEE]/5 text-xs flex items-center justify-center gap-2"
                   >
                     <UploadCloud className="w-4 h-4 text-[#7C4EEE]" />
-                    <span>Seleccionar imagen desde tu computadora</span>
+                    <span>{t('adminProducts.choosePhoto')}</span>
                   </Button>
                   <p className="text-[10px] text-muted-foreground text-center">
-                    Formatos admitidos: JPG, PNG, WEBP (Máx. 5MB)
+                    {t('adminProducts.uploadHint')}
                   </p>
                 </div>
               )}
@@ -602,7 +623,7 @@ export default function AdminProducts() {
                     className="h-10 rounded-xl bg-card text-xs"
                   />
                   <p className="text-[10px] text-muted-foreground">
-                    Pega un enlace web directo a la imagen.
+                    {t('adminProducts.urlHint')}
                   </p>
                 </div>
               )}
@@ -611,7 +632,7 @@ export default function AdminProducts() {
               {imageTab === 'presets' && (
                 <div className="space-y-1.5 pt-1">
                   <p className="text-[10px] text-muted-foreground">
-                    Haz clic en una foto de la colección del café para asignarla:
+                    {t('adminProducts.galleryHint')}
                   </p>
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-40 overflow-y-auto p-1 border border-border/60 rounded-xl bg-card scrollbar-thin">
                     {SAMPLE_PHOTOS.map((photo, idx) => {
@@ -647,10 +668,10 @@ export default function AdminProducts() {
 
             {/* Description */}
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Descripción del Producto</Label>
+              <Label className="text-xs font-semibold">{t('adminProducts.fieldDescription')}</Label>
               <Textarea
                 {...register('description')}
-                placeholder="Detalles sobre notas de sabor, preparación, ingredientes especiales..."
+                placeholder={t('adminProducts.fieldDescriptionPlaceholder')}
                 className="rounded-xl min-h-[70px] text-xs"
               />
             </div>
@@ -658,19 +679,30 @@ export default function AdminProducts() {
             {/* Availability & Sort Order */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Disponibilidad</Label>
+                <Label className="text-xs font-semibold">{t('adminProducts.colAvailability')}</Label>
                 <select
                   {...register('availability')}
                   className="w-full h-10 rounded-xl border border-input bg-card px-3 text-xs focus:outline-none focus:ring-1 focus:ring-[#7C4EEE]"
                 >
-                  <option value="AVAILABLE">Disponible</option>
-                  <option value="LIMITED">Limitado</option>
-                  <option value="UNAVAILABLE">Agotado</option>
+                  <option value="AVAILABLE">{t('common.available')}</option>
+                  <option value="LIMITED">{t('common.limited')}</option>
+                  <option value="UNAVAILABLE">{t('common.soldOut')}</option>
                 </select>
+
+                <label className="flex items-start gap-2 cursor-pointer select-none pt-1">
+                  <input
+                    type="checkbox"
+                    {...register('availabilityLocked')}
+                    className="rounded accent-[#7C4EEE] w-3.5 h-3.5 mt-0.5 cursor-pointer shrink-0"
+                  />
+                  <span className="text-[11px] text-muted-foreground leading-snug">
+                    {t('adminProducts.lockHelp')}
+                  </span>
+                </label>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Orden de Clasificación</Label>
+                <Label className="text-xs font-semibold">{t('adminProducts.fieldSortOrder')}</Label>
                 <Input
                   type="number"
                   {...register('sortOrder', { valueAsNumber: true })}
@@ -688,7 +720,7 @@ export default function AdminProducts() {
                   {...register('isFeatured')}
                   className="rounded accent-[#7C4EEE] w-4 h-4 cursor-pointer"
                 />
-                <span className="text-xs font-medium">Destacado en Menú Principal</span>
+                <span className="text-xs font-medium">{t('adminProducts.flagFeatured')}</span>
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -697,7 +729,7 @@ export default function AdminProducts() {
                   {...register('isPopular')}
                   className="rounded accent-[#7C4EEE] w-4 h-4 cursor-pointer"
                 />
-                <span className="text-xs font-medium">Más Popular</span>
+                <span className="text-xs font-medium">{t('adminProducts.flagPopular')}</span>
               </label>
             </div>
 
@@ -709,7 +741,7 @@ export default function AdminProducts() {
                 onClick={() => setDialogOpen(false)}
                 className="rounded-xl"
               >
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -717,7 +749,7 @@ export default function AdminProducts() {
                 disabled={createMutation.isPending || updateMutation.isPending}
                 className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white px-5 shadow-sm"
               >
-                {selectedProduct ? 'Actualizar Producto' : 'Guardar Producto'}
+                {selectedProduct ? t('adminProducts.saveEdit') : t('adminProducts.saveNew')}
               </Button>
             </DialogFooter>
           </form>
@@ -729,11 +761,15 @@ export default function AdminProducts() {
         <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg text-rose-600">
-              ¿Eliminar producto?
+              {t('adminProducts.deleteTitle')}
             </DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground">
-            ¿Estás seguro de eliminar <strong className="text-foreground">{selectedProduct?.name}</strong>? Esta acción no se puede deshacer.
+            <Trans
+              i18nKey="adminProducts.deleteConfirm"
+              values={{ name: selectedProduct?.name ?? '' }}
+              components={{ strong: <strong className="text-foreground" /> }}
+            />
           </p>
           <DialogFooter className="pt-2">
             <Button
@@ -743,7 +779,7 @@ export default function AdminProducts() {
               onClick={() => setDeleteDialogOpen(false)}
               className="rounded-xl"
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -753,7 +789,7 @@ export default function AdminProducts() {
               disabled={deleteMutation.isPending}
               className="rounded-xl"
             >
-              Eliminar Definitivamente
+              {t('adminProducts.deleteForever')}
             </Button>
           </DialogFooter>
         </DialogContent>

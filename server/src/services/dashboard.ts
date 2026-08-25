@@ -5,17 +5,32 @@ import { userRepository } from '../repositories/user';
 import { OrderStatus } from '@prisma/client';
 import prisma from '../config/prisma';
 
+/** Local midnight, `n` days back — the same day boundary today's KPIs use. */
+function startOfDaysAgo(n: number): Date {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - n);
+  return date;
+}
+
+/** `YYYY-MM-DD` in server-local time, so buckets match `startOfDaysAgo`. */
+function localDateKey(date: Date): string {
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 export class DashboardService {
   async getAdminDashboard(days = 30) {
     const validDays = Math.min(Math.max(Number(days) || 30, 7), 90);
+    const periodStart = startOfDaysAgo(validDays - 1);
     const [
       todaysStats,
       lowStock,
       totalProducts,
       totalCustomers,
       recentOrders,
-      revenueTrend,
-      orderTrend,
+      trend,
       popularProducts,
       orderTypeDistribution,
       paymentMethodDistribution,
@@ -29,26 +44,30 @@ export class DashboardService {
         orderBy: { createdAt: 'desc' },
         include: { customer: { include: { user: true } }, items: { include: { product: true } } },
       }),
-      this.getRevenueTrend(validDays),
-      this.getOrderTrend(validDays),
-      this.getPopularProducts(),
+      this.getTrend(validDays),
+      this.getPopularProducts(periodStart),
+      // Scoped to the selected window like every other figure on the screen.
+      // These two ran unfiltered, so the channel and payment breakdowns showed
+      // all-time totals sitting next to a 7-day chart.
       prisma.order.groupBy({
         by: ['type'],
-        where: { status: { not: OrderStatus.CANCELLED } },
+        where: { status: { not: OrderStatus.CANCELLED }, createdAt: { gte: periodStart } },
         _count: { id: true },
         _sum: { total: true },
       }),
       prisma.payment.groupBy({
         by: ['method'],
-        where: { status: 'PAID' },
+        where: { status: 'PAID', createdAt: { gte: periodStart } },
         _count: { id: true },
         _sum: { amount: true },
       }),
     ]);
 
+    // Money, so two decimals. Rounding to whole units turned a $12.40 average
+    // ticket into $12 and made the figure disagree with the orders it summarises.
     const averageTicket =
       todaysStats.totalOrders > 0
-        ? Math.round(todaysStats.totalRevenue / todaysStats.totalOrders)
+        ? Math.round((todaysStats.totalRevenue / todaysStats.totalOrders) * 100) / 100
         : 0;
 
     return {
@@ -90,8 +109,8 @@ export class DashboardService {
         count: item._count.id,
         revenue: Number(item._sum.amount || 0),
       })),
-      revenueTrend,
-      orderTrend,
+      revenueTrend: trend.revenueTrend,
+      orderTrend: trend.orderTrend,
       popularProducts,
     };
   }
@@ -121,10 +140,19 @@ export class DashboardService {
     };
   }
 
-  private async getRevenueTrend(days: number) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    startDate.setHours(0, 0, 0, 0);
+  /**
+   * Revenue and order counts per day, from one pass over the period.
+   *
+   * These were two methods running two identical queries, each bucketing by
+   * `toISOString()` — UTC — while today's KPIs bucket by the server's local
+   * midnight. For a café west of Greenwich that put the evening's orders on
+   * tomorrow's bar, so the chart and the "Ventas de Hoy" card disagreed every
+   * evening. Both series now come from the same rows and the same local-day
+   * key, which also guarantees the two arrays line up index-for-index — the
+   * admin chart zips them by position.
+   */
+  private async getTrend(days: number) {
+    const startDate = startOfDaysAgo(days - 1);
 
     const orders = await prisma.order.findMany({
       where: {
@@ -134,58 +162,43 @@ export class DashboardService {
       select: { total: true, createdAt: true },
     });
 
-    const dailyRevenue: Record<string, number> = {};
+    const daily: Record<string, { revenue: number; orders: number }> = {};
     orders.forEach(order => {
-      const date = order.createdAt.toISOString().split('T')[0];
-      dailyRevenue[date] = (dailyRevenue[date] || 0) + Number(order.total);
+      const key = localDateKey(order.createdAt);
+      const bucket = daily[key] || (daily[key] = { revenue: 0, orders: 0 });
+      bucket.revenue += Number(order.total);
+      bucket.orders += 1;
     });
 
-    const result = [];
-    for (let i = 0; i < days; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      result.unshift({ date: dateStr, revenue: dailyRevenue[dateStr] || 0 });
+    const revenueTrend = [];
+    const orderTrend = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const dateStr = localDateKey(startOfDaysAgo(i));
+      const bucket = daily[dateStr];
+      revenueTrend.push({
+        date: dateStr,
+        revenue: Math.round((bucket?.revenue ?? 0) * 100) / 100,
+      });
+      orderTrend.push({ date: dateStr, orders: bucket?.orders ?? 0 });
     }
 
-    return result;
+    return { revenueTrend, orderTrend };
   }
 
-  private async getOrderTrend(days: number) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    startDate.setHours(0, 0, 0, 0);
-
-    const orders = await prisma.order.findMany({
-      where: {
-        createdAt: { gte: startDate },
-        status: { not: OrderStatus.CANCELLED },
-      },
-      select: { createdAt: true },
-    });
-
-    const dailyOrders: Record<string, number> = {};
-    orders.forEach(order => {
-      const date = order.createdAt.toISOString().split('T')[0];
-      dailyOrders[date] = (dailyOrders[date] || 0) + 1;
-    });
-
-    const result = [];
-    for (let i = 0; i < days; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      result.unshift({ date: dateStr, orders: dailyOrders[dateStr] || 0 });
-    }
-
-    return result;
-  }
-
-  private async getPopularProducts() {
+  /**
+   * Best sellers for the selected window.
+   *
+   * This used to read the first 1 000 order items the database happened to
+   * return, with no ordering and no date filter: once a café passed a thousand
+   * line items the "top products" panel was ranking an arbitrary slice of its
+   * history rather than what is actually selling now.
+   */
+  private async getPopularProducts(periodStart: Date) {
     const items = await prisma.orderItem.findMany({
-      where: { order: { status: { not: OrderStatus.CANCELLED } } },
+      where: {
+        order: { status: { not: OrderStatus.CANCELLED }, createdAt: { gte: periodStart } },
+      },
       select: { productId: true, quantity: true, totalPrice: true, product: { select: { name: true, imageUrl: true } } },
-      take: 1000,
     });
 
     const productMap: Record<string, { name: string; imageUrl: string | null; quantity: number; revenue: number }> = {};

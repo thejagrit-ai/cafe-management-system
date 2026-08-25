@@ -58,6 +58,8 @@ export interface Product {
   imageUrl?: string;
   categoryId: string;
   availability: 'AVAILABLE' | 'UNAVAILABLE' | 'LIMITED';
+  /** True when a person fixed the availability and stock levels must not move it. */
+  availabilityLocked?: boolean;
   isFeatured: boolean;
   isPopular: boolean;
   sortOrder: number;

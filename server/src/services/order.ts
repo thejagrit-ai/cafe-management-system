@@ -4,7 +4,8 @@ import { createAuditLog, getAuditDataFromRequest } from '../utils/audit';
 import { NotFoundError, InsufficientStockError, ConflictError, BadRequestError } from '../utils/errors';
 import { AuthenticatedRequest } from '../types';
 import { eventHub } from '../utils/eventHub';
-import { loyaltyService } from './loyalty';
+import { loyaltyService, POINT_REDEMPTION_VALUE } from './loyalty';
+import { syncAvailabilityForIngredients, announceStockLevels } from './stockSync';
 import { OrderStatus, OrderType, InventoryTransactionType, ProductAvailability, Prisma, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { generateOrderNumber, calculateTax, calculateTotal } from '../utils/helpers';
 import prisma from '../config/prisma';
@@ -16,6 +17,7 @@ interface CreateOrderData {
   items: Array<{ productId: string; quantity: number; notes?: string }>;
   notes?: string;
   addressId?: string;
+  redeemPoints?: number;
   paymentMethod?: PaymentMethod;
   paymentDetails?: {
     cardNumber?: string;
@@ -84,8 +86,9 @@ export class OrderService {
     const customerId =
       req.user?.role === 'CUSTOMER' ? req.user.customer?.id : data.customerId;
 
-    const order = await prisma.$transaction(async (tx) => {
+    const { order, touchedIngredientIds } = await prisma.$transaction(async (tx) => {
       let subtotal = 0;
+      let touched: string[] = [];
       const orderItems: Prisma.OrderItemCreateWithoutOrderInput[] = [];
 
       // Ingredient needs are accumulated across every line item before being
@@ -144,10 +147,35 @@ export class OrderService {
         }
       }
 
+      // Loyalty redemption. The programme awarded points from day one but
+      // nothing ever spent them: the discount was pinned at zero and the
+      // `loyaltyPointsUsed` / `loyaltyDiscount` columns were never written, so
+      // a customer's balance could only ever grow.
+      let pointsRedeemed = 0;
+      let discountAmount = 0;
+
+      if (customerId && data.redeemPoints && data.redeemPoints > 0) {
+        const customer = await tx.customer.findUnique({
+          where: { id: customerId },
+          select: { loyaltyPoints: true },
+        });
+        if (!customer) throw new NotFoundError('Customer');
+
+        if (data.redeemPoints > customer.loyaltyPoints) {
+          throw new BadRequestError(
+            `Saldo de puntos insuficiente. Tienes ${customer.loyaltyPoints} puntos disponibles.`
+          );
+        }
+
+        pointsRedeemed = loyaltyService.maxRedeemablePoints(data.redeemPoints, subtotal);
+      }
+
       const taxRate = Number(settings?.taxRate ?? 0);
       const taxAmount = calculateTax(subtotal, taxRate);
       const deliveryFee = data.type === OrderType.DELIVERY ? Number(settings?.deliveryFee ?? 0) : 0;
-      const discountAmount = 0;
+      if (pointsRedeemed > 0) {
+        discountAmount = pointsRedeemed * POINT_REDEMPTION_VALUE;
+      }
       const totalAmount = calculateTotal(subtotal, taxAmount, discountAmount, deliveryFee);
 
       const orderNumber = generateOrderNumber();
@@ -169,6 +197,8 @@ export class OrderService {
           taxAmount,
           discountAmount,
           deliveryFee,
+          loyaltyPointsUsed: pointsRedeemed,
+          loyaltyDiscount: discountAmount,
           total: totalAmount,
           notes: data.notes,
           addressId: data.addressId,
@@ -176,6 +206,12 @@ export class OrderService {
         },
         include: { items: { include: { product: true } } },
       });
+
+      // Debited in the same transaction as the order it discounts, so a
+      // failed order can never leave a customer short of points.
+      if (customerId && pointsRedeemed > 0) {
+        await loyaltyService.applyRedemption(tx, customerId, pointsRedeemed, newOrder.id);
+      }
 
       // If paid upfront, record the approved payment in the database
       if (isPaidUpfront && data.paymentMethod) {
@@ -191,7 +227,12 @@ export class OrderService {
         });
 
         // Deduct recipe ingredients immediately since the order is paid and confirmed
-        await this.deductInventory(tx, newOrder);
+        touched = await this.deductInventory(tx, newOrder);
+        // The menu has to follow the pantry: an espresso drink whose beans
+        // just ran out must stop being orderable in the same commit that
+        // consumed them, or the next customer gets as far as checkout before
+        // the shortfall is discovered.
+        await syncAvailabilityForIngredients(tx, touched);
       }
 
       await createAuditLog({
@@ -203,18 +244,21 @@ export class OrderService {
         ...getAuditDataFromRequest(req),
       });
 
-      return newOrder;
+      return { order: newOrder, touchedIngredientIds: touched };
     });
 
     eventHub.broadcast('ORDER_CREATED', order);
-    if (order.status === OrderStatus.CONFIRMED) {
-      eventHub.broadcast('INVENTORY_UPDATED', { orderId: order.id }, ['ADMIN', 'STAFF']);
-    }
+    // Announced after the commit so the levels quoted in the alert are the
+    // ones that were actually persisted.
+    await announceStockLevels(touchedIngredientIds);
 
     return order;
   }
 
-  private async deductInventory(tx: Prisma.TransactionClient, order: any) {
+  /** Consumes each line item's recipe. Returns the ingredient ids it moved. */
+  private async deductInventory(tx: Prisma.TransactionClient, order: any): Promise<string[]> {
+    const touched = new Set<string>();
+
     for (const item of order.items) {
       const recipe = await tx.recipe.findUnique({
         where: { productId: item.productId },
@@ -224,7 +268,8 @@ export class OrderService {
       if (recipe) {
         for (const ri of recipe.ingredients) {
           const requiredQty = Number(ri.quantity) * item.quantity;
-          
+          touched.add(ri.ingredientId);
+
           await tx.ingredient.update({
             where: { id: ri.ingredientId },
             data: { currentStock: { decrement: requiredQty } },
@@ -246,6 +291,8 @@ export class OrderService {
         }
       }
     }
+
+    return [...touched];
   }
 
   async findAll(params: { page: number; limit: number; sortBy?: string; sortOrder?: 'asc' | 'desc'; search?: string; status?: OrderStatus; type?: OrderType; customerId?: string; employeeId?: string; dateFrom?: string; dateTo?: string }) {
@@ -313,7 +360,8 @@ export class OrderService {
       throw new ConflictError(`Invalid status transition from ${order.status} to ${data.status}`);
     }
 
-    const updatedOrder = await prisma.$transaction(async (tx) => {
+    const { updatedOrder, touchedIngredientIds } = await prisma.$transaction(async (tx) => {
+      let touched: string[] = [];
       const updateData: Prisma.OrderUpdateInput = { status: data.status };
       // Any state from CONFIRMED onward means the order was accepted, so stamp
       // the acceptance time if it is still missing. Staff now move one step at
@@ -342,13 +390,18 @@ export class OrderService {
 
       // If moving from PENDING (not deducted) to any fulfilled/active status, deduct inventory
       if (!wasDeducted && willBeDeducted) {
-        await this.deductInventory(tx, updated);
+        touched = await this.deductInventory(tx, updated);
       }
 
       // If moving from a deducted status to CANCELLED or PENDING, restore inventory
       if (wasDeducted && !willBeDeducted) {
-        await this.restoreInventory(tx, updated);
+        touched = await this.restoreInventory(tx, updated);
       }
+
+      // Both directions move the menu: a confirmation can exhaust an
+      // ingredient, and a cancellation puts one back, which should re-list
+      // whatever was taken down because of it.
+      await syncAvailabilityForIngredients(tx, touched);
 
       await createAuditLog({
         userId: req.user?.id,
@@ -360,7 +413,7 @@ export class OrderService {
         ...getAuditDataFromRequest(req),
       });
 
-      return updated;
+      return { updatedOrder: updated, touchedIngredientIds: touched };
     });
 
     if (
@@ -370,19 +423,25 @@ export class OrderService {
       order.customerId
     ) {
       try {
-        await loyaltyService.earnPointsForOrder(order.customerId, order.id, Number(order.subtotal));
+        // Net of any points already spent on this order - otherwise a
+        // redemption immediately earns back a slice of itself.
+        const earnableBase = Math.max(Number(order.subtotal) - Number(order.discountAmount), 0);
+        await loyaltyService.earnPointsForOrder(order.customerId, order.id, earnableBase);
       } catch (err) {
         console.error('Error awarding loyalty points:', err);
       }
     }
 
     eventHub.broadcast('ORDER_STATUS_UPDATED', updatedOrder);
-    eventHub.broadcast('INVENTORY_UPDATED', { orderId: id }, ['ADMIN', 'STAFF']);
+    await announceStockLevels(touchedIngredientIds);
 
     return updatedOrder;
   }
 
-  private async restoreInventory(tx: Prisma.TransactionClient, order: any) {
+  /** Puts a cancelled order's recipes back. Returns the ingredient ids moved. */
+  private async restoreInventory(tx: Prisma.TransactionClient, order: any): Promise<string[]> {
+    const touched = new Set<string>();
+
     for (const item of order.items) {
       const recipe = await tx.recipe.findUnique({
         where: { productId: item.productId },
@@ -392,7 +451,8 @@ export class OrderService {
       if (recipe) {
         for (const ri of recipe.ingredients) {
           const requiredQty = Number(ri.quantity) * item.quantity;
-          
+          touched.add(ri.ingredientId);
+
           await tx.ingredient.update({
             where: { id: ri.ingredientId },
             data: { currentStock: { increment: requiredQty } },
@@ -414,6 +474,8 @@ export class OrderService {
         }
       }
     }
+
+    return [...touched];
   }
 
   async getTodaysStats() {

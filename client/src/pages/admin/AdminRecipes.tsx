@@ -18,7 +18,7 @@ import { api } from '@/api/client'
 import { toast } from 'sonner'
 
 const recipeSchema = z.object({
-  productId: z.string().min(1, 'El producto es obligatorio'),
+  productId: z.string().min(1, 'validation.productRequired'),
   instructions: z.string().optional(),
   prepTime: z.number().int().min(0),
   cookTime: z.number().int().min(0),
@@ -26,13 +26,13 @@ const recipeSchema = z.object({
   ingredients: z
     .array(
       z.object({
-        ingredientId: z.string().min(1, 'Ingrediente obligatorio'),
-        quantity: z.number().min(0.01, 'Cantidad > 0'),
-        unit: z.string().min(1, 'Unidad requerida'),
+        ingredientId: z.string().min(1, 'validation.ingredientRequired'),
+        quantity: z.number().min(0.01, 'validation.quantityGreaterThanZero'),
+        unit: z.string().min(1, 'validation.unitRequired'),
         notes: z.string().optional(),
       })
     )
-    .min(1, 'Agrega al menos un ingrediente'),
+    .min(1, 'validation.atLeastOneIngredient'),
 })
 
 type RecipeFormData = z.infer<typeof recipeSchema>
@@ -84,30 +84,30 @@ export default function AdminRecipes() {
     mutationFn: (data: RecipeFormData) => api.post('/recipes', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      toast.success('Receta creada con éxito')
+      toast.success(t('adminRecipes.created'))
       setDialogOpen(false)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al guardar la receta'),
+    onError: (err: any) => toast.error(err.message || t('adminRecipes.createError')),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: RecipeFormData }) => api.put(`/recipes/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      toast.success('Receta actualizada')
+      toast.success(t('adminRecipes.updated'))
       setDialogOpen(false)
       setSelectedRecipe(null)
       reset()
     },
-    onError: (err: any) => toast.error(err.message || 'Error al actualizar receta'),
+    onError: (err: any) => toast.error(err.message || t('adminRecipes.updateError')),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/recipes/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
-      toast.success('Receta eliminada')
+      toast.success(t('adminRecipes.deleted'))
     },
   })
 
@@ -158,10 +158,10 @@ export default function AdminRecipes() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight">
-            Fórmulas & Recetas
+            {t('adminRecipes.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Composición de insumos y reglas de consumo automático de inventario.
+            {t('adminRecipes.subtitle')}
           </p>
         </div>
 
@@ -181,7 +181,7 @@ export default function AdminRecipes() {
           className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold"
         >
           <Plus className="mr-1.5 h-4 w-4" />
-          <span>Nueva Receta</span>
+          <span>{t('adminRecipes.newRecipe')}</span>
         </Button>
       </div>
 
@@ -189,7 +189,7 @@ export default function AdminRecipes() {
       <div className="p-4 rounded-2xl bg-[#7C4EEE]/5 border border-[#7C4EEE]/20 flex items-start gap-3 text-xs text-foreground">
         <Info className="w-4 h-4 text-[#7C4EEE] shrink-0 mt-0.5" />
         <p className="leading-relaxed">
-          {t('admin.recipeExplanation')} Cada vez que una orden pasa a estado confirmado, los ingredientes indicados son descontados del inventario en una única transacción de base de datos.
+          {t('admin.recipeExplanation')} {t('adminRecipes.explanationExtra')}
         </p>
       </div>
 
@@ -198,8 +198,8 @@ export default function AdminRecipes() {
         {recipes.length === 0 ? (
           <div className="col-span-full p-12 text-center rounded-2xl border border-border/80 bg-card text-muted-foreground space-y-2 text-xs">
             <BookOpen className="w-8 h-8 mx-auto stroke-[1.5]" />
-            <p className="font-semibold text-foreground text-sm">No hay recetas registradas</p>
-            <p>Vincula productos a ingredientes para activar la deducción automática.</p>
+            <p className="font-semibold text-foreground text-sm">{t('adminRecipes.emptyTitle')}</p>
+            <p>{t('adminRecipes.emptyDesc')}</p>
           </div>
         ) : (
           recipes.map((recipe) => (
@@ -210,16 +210,16 @@ export default function AdminRecipes() {
               <div>
                 <div className="flex justify-between items-start gap-2">
                   <h3 className="font-serif font-bold text-base text-foreground">
-                    {recipe.product?.name || 'Producto vinculado'}
+                    {recipe.product?.name || t('adminRecipes.linkedProduct')}
                   </h3>
                   <Badge variant="outline" className="text-[10px]">
-                    {recipe.servings} porción
+                    {t('adminRecipes.servingsBadge', { count: recipe.servings })}
                   </Badge>
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                    Ingredientes requeridos:
+                    {t('adminRecipes.requiredIngredients')}
                   </span>
                   <div className="space-y-1">
                     {recipe.ingredients?.map((ri) => (
@@ -248,7 +248,7 @@ export default function AdminRecipes() {
                   className="rounded-lg text-xs h-8"
                 >
                   <Edit2 className="w-3.5 h-3.5 mr-1" />
-                  <span>Editar</span>
+                  <span>{t('common.edit')}</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -269,38 +269,38 @@ export default function AdminRecipes() {
         <DialogContent className="sm:max-w-xl rounded-2xl bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif text-lg">
-              {selectedRecipe ? 'Editar Receta' : 'Nueva Receta de Producto'}
+              {selectedRecipe ? t('adminRecipes.editRecipe') : t('adminRecipes.newRecipeTitle')}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-xs">
             <div className="space-y-1">
-              <Label className="text-xs">Producto del Menú</Label>
+              <Label className="text-xs">{t('adminRecipes.fieldProduct')}</Label>
               <select
                 {...register('productId')}
                 className="w-full h-9 rounded-xl border border-input bg-card px-3 text-xs focus:outline-none"
               >
-                <option value="">Selecciona el producto...</option>
+                <option value="">{t('adminRecipes.selectProduct')}</option>
                 {productsList.map((p: any) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({p.category?.name || 'General'})
+                    {p.name} ({p.category?.name || t('common.general')})
                   </option>
                 ))}
               </select>
-              {errors.productId && <p className="text-rose-500 text-[10px]">{errors.productId.message}</p>}
+              {errors.productId && <p className="text-rose-500 text-[10px]">{t(errors.productId.message as string)}</p>}
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Tiempo Prep (min)</Label>
+                <Label className="text-xs">{t('adminRecipes.prepTime')}</Label>
                 <Input type="number" {...register('prepTime', { valueAsNumber: true })} className="h-9 rounded-xl" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Tiempo Cocción (min)</Label>
+                <Label className="text-xs">{t('adminRecipes.cookTime')}</Label>
                 <Input type="number" {...register('cookTime', { valueAsNumber: true })} className="h-9 rounded-xl" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Porciones</Label>
+                <Label className="text-xs">{t('adminRecipes.servings')}</Label>
                 <Input type="number" {...register('servings', { valueAsNumber: true })} className="h-9 rounded-xl" />
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function AdminRecipes() {
             <div className="space-y-3 pt-2 border-t border-border/60">
               <div className="flex justify-between items-center">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Fórmula de Insumos / Ingredientes
+                  {t('adminRecipes.formulaLabel')}
                 </Label>
                 <Button
                   type="button"
@@ -319,7 +319,7 @@ export default function AdminRecipes() {
                   className="rounded-lg text-[11px] h-7 px-2"
                 >
                   <Plus className="w-3 h-3 mr-1" />
-                  <span>Añadir insumo</span>
+                  <span>{t('adminRecipes.addIngredient')}</span>
                 </Button>
               </div>
 
@@ -331,7 +331,7 @@ export default function AdminRecipes() {
                         {...register(`ingredients.${idx}.ingredientId`)}
                         className="w-full h-8 rounded-lg border border-input bg-card px-2 text-[11px]"
                       >
-                        <option value="">Ingrediente...</option>
+                        <option value="">{t('adminRecipes.selectIngredient')}</option>
                         {ingredientsList.map((ing) => (
                           <option key={ing.id} value={ing.id}>
                             {ing.name} ({ing.unit})
@@ -344,7 +344,7 @@ export default function AdminRecipes() {
                       <Input
                         type="number"
                         step="any"
-                        placeholder="Cant"
+                        placeholder={t('adminRecipes.qtyShort')}
                         {...register(`ingredients.${idx}.quantity`, { valueAsNumber: true })}
                         className="h-8 rounded-lg text-xs"
                       />
@@ -352,7 +352,7 @@ export default function AdminRecipes() {
 
                     <div className="col-span-3">
                       <Input
-                        placeholder="Unidad"
+                        placeholder={t('adminRecipes.unitShort')}
                         {...register(`ingredients.${idx}.unit`)}
                         className="h-8 rounded-lg text-xs"
                       />
@@ -373,20 +373,20 @@ export default function AdminRecipes() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Instrucciones de Preparación</Label>
+              <Label className="text-xs">{t('adminRecipes.instructions')}</Label>
               <Textarea
                 {...register('instructions')}
-                placeholder="Pasos para el barista o cocinero..."
+                placeholder={t('adminRecipes.instructionsPlaceholder')}
                 className="rounded-xl min-h-[60px]"
               />
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(false)} className="rounded-xl">
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit" size="sm" className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white">
-                Guardar Receta
+                {t('adminRecipes.save')}
               </Button>
             </DialogFooter>
           </form>

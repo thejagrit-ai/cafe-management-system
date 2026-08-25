@@ -136,7 +136,7 @@ export function Navbar() {
                 type="button"
                 onClick={() => setCartDrawerOpen(true)}
                 className="relative flex items-center gap-2 p-2 px-3 rounded-full border border-border/80 bg-secondary/40 hover:bg-secondary transition-colors group"
-                aria-label="Abrir carrito de compras"
+                aria-label={t('navigation.openCart')}
               >
                 <ShoppingBag className="h-4 w-4 text-foreground group-hover:text-brand-gold transition-colors" />
                 {itemCount > 0 ? (
@@ -191,7 +191,7 @@ export function Navbar() {
                               className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 transition-colors"
                               onClick={() => setUserMenuOpen(false)}
                             >
-                              <span>Mis Puntos & Beneficios</span>
+                              <span>{t('navigation.myPointsBenefits')}</span>
                               <span>✨</span>
                             </button>
                           </LoyaltyModal>
@@ -256,7 +256,7 @@ export function Navbar() {
                 type="button"
                 onClick={() => setCartDrawerOpen(true)}
                 className="relative p-2 rounded-xl border border-border/80 bg-secondary/40 text-foreground active:scale-95 transition-transform"
-                aria-label="Abrir carrito"
+                aria-label={t('navigation.openCart')}
               >
                 <ShoppingBag className="h-4 w-4" />
                 {itemCount > 0 && (
@@ -270,7 +270,7 @@ export function Navbar() {
                 type="button"
                 onClick={() => setMobileDrawerOpen(true)}
                 className="p-2 rounded-xl border border-border/80 bg-secondary/30 text-foreground hover:bg-secondary active:scale-95 transition-transform"
-                aria-label="Toggle Navigation Drawer"
+                aria-label={t('navigation.openDrawer')}
               >
                 <Menu className="h-5 w-5 text-brand-gold" />
               </button>
@@ -311,7 +311,7 @@ export function Navbar() {
                     type="button"
                     onClick={() => setMobileDrawerOpen(false)}
                     className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary active:scale-95 transition-all"
-                    aria-label="Cerrar Menú"
+                    aria-label={t('navigation.closeMenu')}
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -329,7 +329,7 @@ export function Navbar() {
                           {user?.customer ? `${user.customer.firstName} ${user.customer.lastName || ''}` : user?.email}
                         </h4>
                         <span className="text-[10px] uppercase tracking-wider font-semibold text-brand-gold">
-                          {user?.role === 'CUSTOMER' ? 'Cliente Preferencial' : user?.role}
+                          {user?.role === 'CUSTOMER' ? t('navigation.preferredCustomer') : user?.role}
                         </span>
                       </div>
                     </div>
@@ -344,7 +344,7 @@ export function Navbar() {
                         >
                           <span className="flex items-center gap-1.5">
                             <Sparkles className="w-4 h-4 text-amber-500" />
-                            <span>Club de Lealtad & Beneficios</span>
+                            <span>{t('navigation.loyaltyClubBenefits')}</span>
                           </span>
                           <ChevronRight className="w-4 h-4 text-amber-500/70" />
                         </button>
@@ -355,10 +355,10 @@ export function Navbar() {
                   <div className="p-4 rounded-2xl bg-secondary/30 border border-border/80 space-y-3.5 shadow-xs">
                     <div className="space-y-1">
                       <h4 className="font-serif font-bold text-sm text-foreground">
-                        Bienvenido a The Coffee Bean
+                        {t('navigation.welcomeTitle')}
                       </h4>
                       <p className="text-xs text-muted-foreground">
-                        Inicia sesión para ordenar en mesa y acumular puntos.
+                        {t('navigation.welcomeDesc')}
                       </p>
                     </div>
 
@@ -431,11 +431,11 @@ export function Navbar() {
                   >
                     <div className="flex items-center gap-3">
                       <ShoppingBag className="w-4 h-4" />
-                      <span>Mi Carrito / Bolsa</span>
+                      <span>{t('navigation.myCart')}</span>
                     </div>
                     {itemCount > 0 ? (
                       <span className="px-2 py-0.5 rounded-full bg-brand-gold text-[10px] font-bold text-brand-ink">
-                        {itemCount} items ({formatCurrency(subtotal)})
+                        {t('navigation.cartBadge', { count: itemCount, total: formatCurrency(subtotal) })}
                       </span>
                     ) : (
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
@@ -451,7 +451,7 @@ export function Navbar() {
                     >
                       <div className="flex items-center gap-3">
                         <Sparkles className="w-4 h-4 text-amber-500" />
-                        <span>Club de Lealtad & Recompensas</span>
+                        <span>{t('navigation.loyaltyClubRewards')}</span>
                       </div>
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
                     </button>
@@ -468,7 +468,7 @@ export function Navbar() {
                     >
                       <div className="flex items-center gap-3">
                         <Receipt className="w-4 h-4" />
-                        <span>Historial de Pedidos</span>
+                        <span>{t('navigation.orderHistory')}</span>
                       </div>
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
                     </Link>
@@ -483,7 +483,7 @@ export function Navbar() {
                     >
                       <div className="flex items-center gap-3">
                         <LayoutDashboard className="w-4 h-4" />
-                        <span>Panel de Administración SaaS</span>
+                        <span>{t('navigation.adminPanelFull')}</span>
                       </div>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
@@ -497,7 +497,7 @@ export function Navbar() {
                     >
                       <div className="flex items-center gap-3">
                         <UtensilsCrossed className="w-4 h-4" />
-                        <span>Consola Baristas & KDS</span>
+                        <span>{t('navigation.staffConsoleFull')}</span>
                       </div>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
@@ -508,7 +508,7 @@ export function Navbar() {
               {/* Drawer Footer: Language + Theme + Logout */}
               <div className="pt-4 border-t border-border/80 space-y-3 mt-6 font-sans">
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-[11px] font-semibold text-muted-foreground">Idioma & Tema</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground">{t('navigation.languageAndTheme')}</span>
                   <div className="flex items-center gap-2">
                     <LanguageSwitcher showIcon={true} />
                     <ThemeToggle />

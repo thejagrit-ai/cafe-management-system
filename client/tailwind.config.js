@@ -116,7 +116,17 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      // Tailwind v3 has no `xs` step on these scales, but the admin and staff
+      // screens were written against the v4 names. Without these the 80-odd
+      // `shadow-xs` cards compiled to nothing and rendered completely flat.
+      spacing: {
+        13: '3.25rem',
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
       boxShadow: {
+        'xs': '0 1px 2px 0 rgba(18, 17, 24, 0.06)',
         'subtle': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)',
         'card': '0 4px 20px -2px rgba(18, 17, 24, 0.05), 0 2px 6px -1px rgba(18, 17, 24, 0.03)',
         'card-hover': '0 10px 30px -4px rgba(18, 17, 24, 0.08), 0 4px 12px -2px rgba(18, 17, 24, 0.04)',
@@ -148,5 +158,27 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    // `scrollbar-none` is used on the admin sidebar so the nav can scroll on
+    // short viewports without a scrollbar cutting into the 64px rail.
+    function ({ addUtilities }) {
+      addUtilities({
+        '.scrollbar-none': {
+          'scrollbar-width': 'none',
+          '-ms-overflow-style': 'none',
+          '&::-webkit-scrollbar': { display: 'none' },
+        },
+        '.scrollbar-thin': {
+          'scrollbar-width': 'thin',
+          '&::-webkit-scrollbar': { width: '6px', height: '6px' },
+          '&::-webkit-scrollbar-track': { background: 'transparent' },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'hsl(var(--border))',
+            'border-radius': '9999px',
+          },
+        },
+      })
+    },
+  ],
 }

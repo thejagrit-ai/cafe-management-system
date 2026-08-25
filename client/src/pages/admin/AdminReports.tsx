@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { reportsApi } from '@/api/dashboard'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,7 +13,6 @@ import {
   Calendar,
   Layers,
   FileSpreadsheet,
-  Download,
   Loader2
 } from 'lucide-react'
 import { useDownloadCSV } from '@/hooks/useDownloadCSV'
@@ -36,6 +36,7 @@ import {
 const VIOLET_COFFEE_PALETTE = ['#7C4EEE', '#956743', '#C48B5C', '#5529BC', '#DBC4A7', '#362217', '#EFE0CF']
 
 export default function AdminReports() {
+  const { t } = useTranslation()
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [activeTab, setActiveTab] = useState('sales')
@@ -69,25 +70,25 @@ export default function AdminReports() {
 
       const records = res.data || []
       if (records.length === 0) {
-        toast.info('No hay registros para exportar en este período')
+        toast.info(t('adminReports.exportEmpty'))
         return
       }
 
       if (type === 'sales') {
         const headers = [
-          'N° Pedido',
-          'Fecha',
-          'Tipo de Pedido',
-          'Mesa',
-          'Cliente',
-          'Estado',
-          'Cantidad Productos',
-          'Subtotal (COP)',
-          'Impuestos',
-          'Domicilio',
-          'Total (COP)',
-          'Método de Pago',
-          'Estado de Pago',
+          t('adminReports.csvOrderNumber'),
+          t('common.date'),
+          t('adminReports.csvOrderType'),
+          t('adminReports.csvTable'),
+          t('adminReports.csvCustomer'),
+          t('common.status'),
+          t('adminReports.csvItemsCount'),
+          t('adminReports.csvSubtotal'),
+          t('adminReports.csvTax'),
+          t('adminReports.csvDelivery'),
+          t('adminReports.csvTotal'),
+          t('adminReports.csvPaymentMethod'),
+          t('adminReports.csvPaymentStatus'),
         ]
         const rows = records.map((r: any) => [
           r.orderNumber,
@@ -104,19 +105,19 @@ export default function AdminReports() {
           r.paymentMethod,
           r.paymentStatus,
         ])
-        downloadCSV({ filename: `reporte_ventas_${timestamp}`, headers, rows })
+        downloadCSV({ filename: `${t('adminReports.csvSalesFile')}_${timestamp}`, headers, rows })
       } else if (type === 'inventory') {
         const headers = [
           'SKU',
-          'Insumo / Ingrediente',
-          'Stock Actual',
-          'Stock Mínimo',
-          'Stock Máximo',
-          'Unidad',
-          'Costo Unitario',
-          'Valorización Total',
-          'Estado',
-          'Proveedor',
+          t('adminReports.csvIngredient'),
+          t('adminReports.csvCurrentStock'),
+          t('adminReports.csvMinStock'),
+          t('adminReports.csvMaxStock'),
+          t('adminReports.csvUnit'),
+          t('adminReports.csvUnitCost'),
+          t('adminReports.csvTotalValue'),
+          t('common.status'),
+          t('adminReports.csvSupplier'),
         ]
         const rows = records.map((r: any) => [
           r.sku,
@@ -130,15 +131,15 @@ export default function AdminReports() {
           r.status,
           r.supplier,
         ])
-        downloadCSV({ filename: `reporte_inventario_${timestamp}`, headers, rows })
+        downloadCSV({ filename: `${t('adminReports.csvInventoryFile')}_${timestamp}`, headers, rows })
       } else if (type === 'products') {
         const headers = [
-          'Producto',
-          'Categoría',
-          'Precio Unitario',
-          'Unidades Vendidas',
-          'N° de Comandas',
-          'Ingresos Totales (COP)',
+          t('adminReports.csvProduct'),
+          t('adminReports.csvCategory'),
+          t('adminReports.csvUnitPrice'),
+          t('adminReports.csvQuantitySold'),
+          t('adminReports.csvOrderCount'),
+          t('adminReports.csvTotalRevenue'),
         ]
         const rows = records.map((r: any) => [
           r.name,
@@ -148,10 +149,10 @@ export default function AdminReports() {
           r.orderCount,
           r.totalRevenue,
         ])
-        downloadCSV({ filename: `reporte_productos_${timestamp}`, headers, rows })
+        downloadCSV({ filename: `${t('adminReports.csvProductsFile')}_${timestamp}`, headers, rows })
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Error al exportar reporte')
+      toast.error(err?.message || t('adminReports.exportError'))
     }
   }
 
@@ -161,10 +162,10 @@ export default function AdminReports() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-border/60 pb-5">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight">
-            Reportes & Analítica de Negocio
+            {t('adminReports.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Métricas consolidadas de ventas, rotación de productos y consumo de inventario.
+            {t('adminReports.subtitle')}
           </p>
         </div>
 
@@ -177,7 +178,7 @@ export default function AdminReports() {
               onChange={(e) => setDateFrom(e.target.value)}
               className="h-8 w-32 rounded-lg text-xs"
             />
-            <span className="text-muted-foreground">a</span>
+            <span className="text-muted-foreground">{t('adminReports.dateSeparator')}</span>
             <Input
               type="date"
               value={dateTo}
@@ -197,7 +198,7 @@ export default function AdminReports() {
             ) : (
               <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             )}
-            <span>Exportar Excel CSV</span>
+            <span>{t('adminReports.exportCsv')}</span>
           </Button>
         </div>
       </div>
@@ -205,13 +206,13 @@ export default function AdminReports() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="rounded-xl p-1 bg-secondary/60 mb-6">
           <TabsTrigger value="sales" className="rounded-lg text-xs font-semibold">
-            Ventas & Facturación
+            {t('adminReports.tabSales')}
           </TabsTrigger>
           <TabsTrigger value="products" className="rounded-lg text-xs font-semibold">
-            Rendimiento por Producto
+            {t('adminReports.tabProducts')}
           </TabsTrigger>
           <TabsTrigger value="inventory" className="rounded-lg text-xs font-semibold">
-            Inventario & Existencias
+            {t('adminReports.tabInventory')}
           </TabsTrigger>
         </TabsList>
 
@@ -229,7 +230,7 @@ export default function AdminReports() {
                 <div className="p-5 rounded-2xl border border-border/80 bg-card flex justify-between items-center shadow-xs">
                   <div>
                     <span className="text-xs text-muted-foreground font-semibold">
-                      Ingresos Totales
+                      {t('adminReports.totalRevenue')}
                     </span>
                     <p className="text-2xl font-bold font-sans text-foreground mt-1">
                       {formatCurrency(Number(sales.summary.totalRevenue))}
@@ -243,7 +244,7 @@ export default function AdminReports() {
                 <div className="p-5 rounded-2xl border border-border/80 bg-card flex justify-between items-center shadow-xs">
                   <div>
                     <span className="text-xs text-muted-foreground font-semibold">
-                      Total Pedidos
+                      {t('adminReports.totalOrders')}
                     </span>
                     <p className="text-2xl font-bold font-mono text-foreground mt-1">
                       {sales.summary.totalOrders}
@@ -257,7 +258,7 @@ export default function AdminReports() {
                 <div className="p-5 rounded-2xl border border-border/80 bg-card flex justify-between items-center shadow-xs">
                   <div>
                     <span className="text-xs text-muted-foreground font-semibold">
-                      Ticket Promedio
+                      {t('adminReports.averageTicket')}
                     </span>
                     <p className="text-2xl font-bold font-sans text-foreground mt-1">
                       {formatCurrency(Number(sales.summary.averageOrderValue))}
@@ -272,7 +273,7 @@ export default function AdminReports() {
               {/* Chart */}
               <div className="p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
                 <h3 className="font-serif font-bold text-base text-foreground">
-                  Evolución de Ingresos por Día
+                  {t('adminReports.revenueByDay')}
                 </h3>
                 <div className="h-72 pt-2">
                   <ResponsiveContainer width="100%" height="100%">
@@ -287,7 +288,7 @@ export default function AdminReports() {
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#888" />
                       <YAxis tick={{ fontSize: 11 }} stroke="#888" />
                       <Tooltip
-                        formatter={(val: number) => [formatCurrency(val), 'Ingresos']}
+                        formatter={(val: number) => [formatCurrency(val), t('adminReports.revenueLabel')]}
                         contentStyle={{
                           backgroundColor: '#1A1824',
                           borderRadius: '12px',
@@ -320,7 +321,7 @@ export default function AdminReports() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
                 <h3 className="font-serif font-bold text-base text-foreground">
-                  Top Productos por Facturación
+                  {t('adminReports.topProducts')}
                 </h3>
                 <div className="h-72 pt-2">
                   <ResponsiveContainer width="100%" height="100%">
@@ -329,7 +330,7 @@ export default function AdminReports() {
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#888" />
                       <YAxis tick={{ fontSize: 11 }} stroke="#888" />
                       <Tooltip
-                        formatter={(val: number) => [formatCurrency(val), 'Ventas']}
+                        formatter={(val: number) => [formatCurrency(val), t('adminReports.salesLabel')]}
                         contentStyle={{
                           backgroundColor: '#1A1824',
                           borderRadius: '12px',
@@ -346,7 +347,7 @@ export default function AdminReports() {
 
               <div className="p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
                 <h3 className="font-serif font-bold text-base text-foreground">
-                  Facturación por Categoría
+                  {t('adminReports.revenueByCategory')}
                 </h3>
                 <div className="h-72 pt-2">
                   <ResponsiveContainer width="100%" height="100%">
@@ -368,7 +369,7 @@ export default function AdminReports() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(val: number) => [formatCurrency(val), 'Ingresos']}
+                        formatter={(val: number) => [formatCurrency(val), t('adminReports.revenueLabel')]}
                         contentStyle={{
                           backgroundColor: '#1A1824',
                           borderRadius: '12px',
@@ -394,19 +395,19 @@ export default function AdminReports() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div className="p-5 rounded-2xl border border-border/80 bg-card">
-                  <span className="text-xs text-muted-foreground font-semibold">Insumos Totales</span>
+                  <span className="text-xs text-muted-foreground font-semibold">{t('adminReports.totalIngredients')}</span>
                   <p className="text-2xl font-bold font-mono text-foreground mt-1">
                     {inventory.summary.totalIngredients}
                   </p>
                 </div>
                 <div className="p-5 rounded-2xl border border-border/80 bg-card">
-                  <span className="text-xs text-muted-foreground font-semibold">Valor Total en Bodega</span>
+                  <span className="text-xs text-muted-foreground font-semibold">{t('adminReports.inventoryValue')}</span>
                   <p className="text-2xl font-bold font-sans text-foreground mt-1">
                     {formatCurrency(Number(inventory.summary.totalInventoryValue))}
                   </p>
                 </div>
                 <div className="p-5 rounded-2xl border border-border/80 bg-card">
-                  <span className="text-xs text-muted-foreground font-semibold">Alertas Stock Bajo</span>
+                  <span className="text-xs text-muted-foreground font-semibold">{t('adminReports.lowStockAlerts')}</span>
                   <p className="text-2xl font-bold font-mono text-rose-600 mt-1">
                     {inventory.summary.lowStockCount}
                   </p>
@@ -415,18 +416,18 @@ export default function AdminReports() {
 
               <div className="p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
                 <h3 className="font-serif font-bold text-base text-foreground">
-                  Inventario General de Insumos
+                  {t('adminReports.inventoryTableTitle')}
                 </h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-secondary/40 border-b border-border/60 text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
                       <tr>
-                        <th className="p-4">Ingrediente</th>
+                        <th className="p-4">{t('adminIngredients.colIngredient')}</th>
                         <th className="p-4">SKU</th>
-                        <th className="p-4">Stock Actual</th>
-                        <th className="p-4">Costo Unitario</th>
-                        <th className="p-4">Valor Total</th>
-                        <th className="p-4">Proveedor</th>
+                        <th className="p-4">{t('adminReports.colCurrentStock')}</th>
+                        <th className="p-4">{t('adminReports.colUnitCost')}</th>
+                        <th className="p-4">{t('adminReports.colTotalValue')}</th>
+                        <th className="p-4">{t('adminReports.colSupplier')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">

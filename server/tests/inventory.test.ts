@@ -165,6 +165,32 @@ describe('inventory', () => {
       expect(res.status).toBe(400);
     });
 
+    /**
+     * The six movement types the admin inventory screen offers must all be
+     * accepted. The console used to send STOCK_RECEIVED, STOCK_ADDED,
+     * STOCK_DEDUCTED and MANUAL_ADJUSTMENT — names this endpoint has never
+     * known — so four of its six options failed with a 400 before touching
+     * the database.
+     */
+    it.each([
+      ['RECEIVED', 250, 350],
+      ['ADDED', 40, 140],
+      ['DEDUCTED', 40, 60],
+      ['ADJUSTMENT', 25, 25],
+      ['WASTE', 10, 90],
+      ['DAMAGED', 10, 90],
+    ])('accepts a %s adjustment from the admin console', async (type, quantity, expected) => {
+      const { ingredient } = await createCatalog({ currentStock: 100 });
+
+      const res = await api()
+        .post(`/api/ingredients/${ingredient.id}/adjust-stock`)
+        .set(auth(adminToken))
+        .send({ type, quantity, notes: `${type} via console` });
+
+      expect([200, 201]).toContain(res.status);
+      expect(await stockOf(ingredient.id)).toBeCloseTo(expected as number, 3);
+    });
+
     it('rejects a negative quantity with 400', async () => {
       const { ingredient } = await createCatalog();
 

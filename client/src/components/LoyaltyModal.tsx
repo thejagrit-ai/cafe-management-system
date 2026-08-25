@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { loyaltyApi } from '@/api/loyalty'
 import {
@@ -13,9 +14,10 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, formatDate } from '@/utils/lib'
-import { Award, Gift, Sparkles, Star, ChevronRight, CheckCircle2, TrendingUp, LogIn, UserPlus } from 'lucide-react'
+import { Gift, Sparkles, CheckCircle2, TrendingUp, LogIn, UserPlus } from 'lucide-react'
 
 export function LoyaltyModal({ children }: { children?: React.ReactNode }) {
+  const { t } = useTranslation()
   const { user, isAuthenticated } = useAuth()
 
   const { data, isLoading } = useQuery({
@@ -37,7 +39,9 @@ export function LoyaltyModal({ children }: { children?: React.ReactNode }) {
             className="rounded-full border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 text-xs font-semibold px-3 flex items-center gap-1.5"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>{loyalty ? `${loyalty.points} Puntos` : 'Club Lealtad'}</span>
+            <span>
+              {loyalty ? t('loyalty.badgeLabel', { points: loyalty.points }) : t('loyalty.clubButton')}
+            </span>
           </Button>
         )}
       </DialogTrigger>
@@ -47,11 +51,11 @@ export function LoyaltyModal({ children }: { children?: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <span className="text-2xl">{loyalty?.tierDetails?.badge || '☕'}</span>
             <DialogTitle className="font-serif text-xl font-bold text-foreground">
-              Programa de Lealtad Café Origin
+              {t('loyalty.modalTitle')}
             </DialogTitle>
           </div>
           <p className="text-xs text-muted-foreground">
-            Gana puntos con cada compra y canjéalos por descuentos exclusivos y bebidas de cortesía.
+            {t('loyalty.modalSubtitle')}
           </p>
         </DialogHeader>
 
@@ -62,30 +66,30 @@ export function LoyaltyModal({ children }: { children?: React.ReactNode }) {
             </div>
             <div className="space-y-1">
               <h3 className="font-serif font-bold text-lg text-foreground">
-                ¡Recibe 50 Puntos de Bienvenida!
+                {t('loyalty.welcomeBonus')}
               </h3>
               <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                Crea tu cuenta o inicia sesión para comenzar a ganar beneficios, bebidas gratis y descuentos VIP.
+                {t('loyalty.welcomeBonusDesc')}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2">
               <Link to="/login">
                 <Button variant="outline" className="w-full rounded-xl text-xs h-10 font-semibold flex items-center justify-center gap-1.5">
                   <LogIn className="w-4 h-4" />
-                  <span>Iniciar Sesión</span>
+                  <span>{t('navigation.login')}</span>
                 </Button>
               </Link>
               <Link to="/register">
                 <Button className="w-full rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs h-10 font-semibold shadow-xs flex items-center justify-center gap-1.5">
                   <UserPlus className="w-4 h-4" />
-                  <span>Crear Cuenta</span>
+                  <span>{t('navigation.register')}</span>
                 </Button>
               </Link>
             </div>
           </div>
         ) : isLoading ? (
           <div className="py-12 text-center text-xs text-muted-foreground animate-pulse">
-            Cargando tus beneficios de lealtad...
+            {t('loyalty.loading')}
           </div>
         ) : loyalty ? (
           <div className="space-y-5 pt-2">
@@ -95,10 +99,10 @@ export function LoyaltyModal({ children }: { children?: React.ReactNode }) {
 
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-white/80 uppercase tracking-wider">
-                  Nivel de Membresía
+                  {t('loyalty.membershipTier')}
                 </span>
                 <Badge className="bg-white/20 hover:bg-white/30 text-white text-xs border-none font-bold">
-                  {loyalty.tierDetails.badge} Nivel {loyalty.tierDetails.name}
+                  {loyalty.tierDetails.badge} {t('loyalty.tierBadge', { tier: loyalty.tierDetails.name })}
                 </Badge>
               </div>
 
@@ -107,10 +111,12 @@ export function LoyaltyModal({ children }: { children?: React.ReactNode }) {
                   <span className="text-3xl font-bold font-sans tracking-tight">
                     {loyalty.points}
                   </span>
-                  <span className="text-sm text-white/80 font-semibold">Puntos Acumulados</span>
+                  <span className="text-sm text-white/80 font-semibold">{t('loyalty.pointsBalance')}</span>
                 </div>
                 <p className="text-xs text-white/70 mt-0.5">
-                  Equivalen a <strong className="text-white">{formatCurrency(loyalty.monetaryValue)}</strong> en descuentos directos.
+                  {t('loyalty.worthLabel1')}{' '}
+                  <strong className="text-white">{formatCurrency(loyalty.monetaryValue)}</strong>{' '}
+                  {t('loyalty.worthLabel2')}
                 </p>
               </div>
 
@@ -118,8 +124,8 @@ export function LoyaltyModal({ children }: { children?: React.ReactNode }) {
               {loyalty.nextTier.nextTier && (
                 <div className="mt-4 pt-3 border-t border-white/20 space-y-1.5">
                   <div className="flex items-center justify-between text-[11px] text-white/90">
-                    <span>Progreso a Nivel {loyalty.nextTier.nextTier}</span>
-                    <span className="font-bold">Faltan {loyalty.nextTier.pointsNeeded} pts</span>
+                    <span>{t('loyalty.progressTo', { tier: loyalty.nextTier.nextTier })}</span>
+                    <span className="font-bold">{t('loyalty.pointsToGo', { points: loyalty.nextTier.pointsNeeded })}</span>
                   </div>
                   <div className="w-full h-2 bg-black/20 rounded-full overflow-hidden">
                     <div
@@ -135,7 +141,7 @@ export function LoyaltyModal({ children }: { children?: React.ReactNode }) {
             <div className="space-y-2.5">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Gift className="w-3.5 h-3.5 text-[#7C4EEE]" />
-                Tus Beneficios Activos
+                {t('loyalty.activePerks')}
               </span>
               <div className="grid grid-cols-1 gap-2">
                 {loyalty.tierDetails.perks.map((perk, idx) => (
@@ -155,7 +161,7 @@ export function LoyaltyModal({ children }: { children?: React.ReactNode }) {
               <div className="space-y-2 pt-2 border-t border-border/60">
                 <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <TrendingUp className="w-3.5 h-3.5 text-[#7C4EEE]" />
-                  Historial de Puntos
+                  {t('loyalty.pointsHistory')}
                 </span>
                 <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
                   {loyalty.transactions.slice(0, 5).map((tx) => (

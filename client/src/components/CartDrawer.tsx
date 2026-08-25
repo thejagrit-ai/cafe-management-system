@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react'
 import { useCart } from '@/contexts/CartContext'
+import { SmartImage } from '@/components/SmartImage'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatCurrency, cn } from '@/utils/lib'
 
@@ -86,18 +87,17 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               {items.map((entry) => (
                 <div key={entry.product.id} className="flex gap-4 py-5">
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-sm bg-secondary">
-                    {entry.product.imageUrl ? (
-                      <img
-                        src={entry.product.imageUrl}
-                        alt={entry.product.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-brand-gold/50">
-                        <ShoppingBag className="h-6 w-6" />
-                      </div>
-                    )}
+                    <SmartImage
+                      src={entry.product.imageUrl}
+                      alt={entry.product.name}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                      fallback={
+                        <div className="flex h-full w-full items-center justify-center text-brand-gold/50">
+                          <ShoppingBag className="h-6 w-6" />
+                        </div>
+                      }
+                    />
                   </div>
 
                   <div className="min-w-0 flex-1">

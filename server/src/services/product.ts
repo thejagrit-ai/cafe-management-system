@@ -6,7 +6,7 @@ import { AuthenticatedRequest } from '../types';
 import prisma from '../config/prisma';
 
 export class ProductService {
-  async create(data: { name: string; description?: string; price: number; imageUrl?: string; categoryId: string; availability?: string; isFeatured?: boolean; isPopular?: boolean; sortOrder?: number }, req: AuthenticatedRequest) {
+  async create(data: { name: string; description?: string; price: number; imageUrl?: string; categoryId: string; availability?: string; availabilityLocked?: boolean; isFeatured?: boolean; isPopular?: boolean; sortOrder?: number }, req: AuthenticatedRequest) {
     const category = await categoryRepository.findById(data.categoryId);
     if (!category) {
       throw new NotFoundError('Category');
@@ -21,6 +21,7 @@ export class ProductService {
           imageUrl: data.imageUrl,
           categoryId: data.categoryId,
           availability: data.availability as any,
+          availabilityLocked: data.availabilityLocked ?? false,
           isFeatured: data.isFeatured ?? false,
           isPopular: data.isPopular ?? false,
           sortOrder: data.sortOrder ?? 0,

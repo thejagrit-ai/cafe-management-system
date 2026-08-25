@@ -19,6 +19,7 @@ import {
   Globe
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 interface TableItem {
   id: number
@@ -89,6 +90,7 @@ function classifyReachability(baseUrl: string): Reachability {
 }
 
 export default function AdminTables() {
+  const { t } = useTranslation()
   const [tables, setTables] = useState<TableItem[]>(() => {
     const saved = localStorage.getItem('cafe_admin_tables')
     if (saved) {
@@ -128,18 +130,18 @@ export default function AdminTables() {
     e.preventDefault()
     const num = parseInt(newTableNum, 10)
     if (isNaN(num) || num <= 0) {
-      toast.error('Ingresa un número de mesa válido')
+      toast.error(t('adminTables.invalidTableNumber'))
       return
     }
     if (tables.some((t) => t.id === num)) {
-      toast.error(`La Mesa #${num} ya existe en el listado`)
+      toast.error(t('adminTables.tableExists', { number: num }))
       return
     }
 
     const updated = [...tables, { id: num, name: `Mesa ${num}`, zone: newTableZone }].sort((a, b) => a.id - b.id)
     saveTables(updated)
     setNewTableNum('')
-    toast.success(`Mesa #${num} agregada con éxito`)
+    toast.success(t('adminTables.tableAdded', { number: num }))
   }
 
   const handleDeleteTable = (id: number) => {
@@ -148,7 +150,7 @@ export default function AdminTables() {
     if (selectedTableId === id && updated.length > 0) {
       setSelectedTableId(updated[0].id)
     }
-    toast.success('Mesa eliminada')
+    toast.success(t('adminTables.tableDeleted'))
   }
 
   const getTableUrl = useCallback(
@@ -160,20 +162,20 @@ export default function AdminTables() {
     e.preventDefault()
     const normalized = normalizeBaseUrl(baseUrlDraft)
     if (!normalized) {
-      toast.error('Ingresa la dirección pública del sitio')
+      toast.error(t('adminTables.enterPublicUrl'))
       return
     }
     try {
-      // eslint-disable-next-line no-new
+      // Constructed purely for its parse-or-throw behaviour.
       new URL(normalized)
     } catch {
-      toast.error('La dirección no es una URL válida')
+      toast.error(t('adminTables.invalidUrl'))
       return
     }
     setBaseUrl(normalized)
     setBaseUrlDraft(normalized)
     localStorage.setItem(BASE_URL_STORAGE_KEY, normalized)
-    toast.success('Dirección actualizada. Los códigos QR se regeneraron.')
+    toast.success(t('adminTables.urlUpdated'))
   }
 
   const downloadQrCode = (table: TableItem) => {
@@ -182,7 +184,7 @@ export default function AdminTables() {
     // a canvas in the DOM and the others failed silently.
     const canvas = document.getElementById(`qr-canvas-${table.id}`) as HTMLCanvasElement | null
     if (!canvas) {
-      toast.error('No se pudo generar la imagen del código QR')
+      toast.error(t('adminTables.qrGenerateFailed'))
       return
     }
     const url = canvas.toDataURL('image/png')
@@ -190,15 +192,15 @@ export default function AdminTables() {
     link.download = `QR-Mesa-${table.id}-The-Coffee-Bean.png`
     link.href = url
     link.click()
-    toast.success(`Código QR de ${table.name} descargado`)
+    toast.success(t('adminTables.qrDownloaded', { name: table.name }))
   }
 
   const copyTableUrl = async (table: TableItem) => {
     try {
       await navigator.clipboard.writeText(getTableUrl(table.id))
-      toast.success(`Enlace de ${table.name} copiado`)
+      toast.success(t('adminTables.linkCopied', { name: table.name }))
     } catch {
-      toast.error('No se pudo copiar el enlace')
+      toast.error(t('adminTables.copyFailed'))
     }
   }
 
@@ -228,10 +230,10 @@ export default function AdminTables() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground tracking-tight flex items-center gap-2.5">
             <QrCode className="w-7 h-7 text-[#7C4EEE]" />
-            <span>Generador de Códigos QR para Mesas</span>
+            <span>{t('adminTables.title')}</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Genera, personaliza, descarga e imprime códigos QR para que los comensales ordenen directamente desde su mesa.
+            {t('adminTables.subtitle')}
           </p>
         </div>
 
@@ -241,7 +243,7 @@ export default function AdminTables() {
             className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold shadow-sm flex items-center gap-2"
           >
             <Printer className="w-4 h-4" />
-            <span>Imprimir Tarjeta de Mesa</span>
+            <span>{t('adminTables.printCard')}</span>
           </Button>
         </div>
       </div>
@@ -251,12 +253,11 @@ export default function AdminTables() {
         <div className="flex items-center gap-2">
           <Globe className="w-4 h-4 text-[#7C4EEE]" />
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Dirección pública del sitio
+            {t('adminTables.publicUrlLabel')}
           </span>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Es la dirección que abrirá el teléfono del cliente al escanear. Debe ser accesible desde fuera de este
-          computador — no la dirección local del panel.
+          {t('adminTables.publicUrlHelp')}
         </p>
         <form onSubmit={applyBaseUrl} className="flex flex-col sm:flex-row gap-2">
           <Input
@@ -268,7 +269,7 @@ export default function AdminTables() {
             inputMode="url"
           />
           <Button type="submit" size="sm" className="h-10 rounded-xl bg-[#7C4EEE] text-white px-4 text-xs">
-            Guardar y regenerar
+            {t('adminTables.saveAndRegenerate')}
           </Button>
         </form>
 
@@ -276,10 +277,11 @@ export default function AdminTables() {
           <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <span className="text-[11px]">
-              <strong>Los códigos QR no funcionarán todavía.</strong> Apuntan a{' '}
-              <code className="font-mono">{baseUrl || '—'}</code>, una dirección que solo existe en este computador. El
-              teléfono del cliente no podrá abrirla. Escribe arriba la dirección pública de tu sitio (por ejemplo{' '}
-              <code className="font-mono">https://tu-cafe.com</code>) antes de imprimir las tarjetas.
+              <strong>{t('adminTables.unreachableStrong')}</strong> {t('adminTables.unreachableBody1')}{' '}
+              <code className="font-mono">{baseUrl || '—'}</code>
+              {t('adminTables.unreachableBody2')}{' '}
+              <code className="font-mono">https://tu-cafe.com</code>
+              {t('adminTables.unreachableBody3')}
             </span>
           </div>
         )}
@@ -288,8 +290,7 @@ export default function AdminTables() {
           <div className="flex items-start gap-2 p-3 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 dark:bg-sky-950/40 dark:border-sky-900 dark:text-sky-200">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <span className="text-[11px]">
-              Esta es una dirección de red local: solo funcionará para teléfonos conectados al mismo Wi-Fi del café.
-              Sirve para probar, pero usa la dirección pública para las tarjetas definitivas.
+              {t('adminTables.lanOnlyWarning')}
             </span>
           </div>
         )}
@@ -297,7 +298,7 @@ export default function AdminTables() {
         {reachability === 'ok' && (
           <div className="flex items-center gap-2 text-[11px] text-emerald-600 dark:text-emerald-400">
             <Check className="w-3.5 h-3.5 shrink-0" />
-            <span>Dirección pública válida. Los códigos QR abrirán la carta en cualquier teléfono.</span>
+            <span>{t('adminTables.reachableOk')}</span>
           </div>
         )}
       </div>
@@ -309,12 +310,12 @@ export default function AdminTables() {
           {/* Add Table Card */}
           <div className="p-4 rounded-2xl border border-border/80 bg-card shadow-xs space-y-3">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
-              Agregar Nueva Mesa
+              {t('adminTables.addTable')}
             </span>
             <form onSubmit={handleAddTable} className="flex gap-2">
               <Input
                 type="number"
-                placeholder="Número (ej. 9)"
+                placeholder={t('adminTables.tableNumberPlaceholder')}
                 value={newTableNum}
                 onChange={(e) => setNewTableNum(e.target.value)}
                 className="h-10 rounded-xl text-xs flex-1"
@@ -325,10 +326,10 @@ export default function AdminTables() {
                 onChange={(e) => setNewTableZone(e.target.value)}
                 className="h-10 px-3 rounded-xl border border-border bg-card text-xs font-medium focus:outline-none"
               >
-                <option value="Salón Principal">Salón</option>
-                <option value="Terraza">Terraza</option>
-                <option value="Ventana">Ventana</option>
-                <option value="Barra">Barra</option>
+                <option value="Salón Principal">{t('adminTables.zoneMain')}</option>
+                <option value="Terraza">{t('adminTables.zoneTerrace')}</option>
+                <option value="Ventana">{t('adminTables.zoneWindow')}</option>
+                <option value="Barra">{t('adminTables.zoneBar')}</option>
               </select>
               <Button type="submit" size="sm" className="h-10 rounded-xl bg-[#7C4EEE] text-white px-3 text-xs">
                 <Plus className="w-4 h-4" />
@@ -340,17 +341,17 @@ export default function AdminTables() {
           <div className="p-4 rounded-2xl border border-border/80 bg-card shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Mesas Registradas ({tables.length})
+                {t('adminTables.registeredTables', { count: tables.length })}
               </span>
               <Badge className="bg-[#7C4EEE]/10 text-[#7C4EEE] border-[#7C4EEE]/20 text-[10px]">
-                Activas
+                {t('adminTables.activeBadge')}
               </Badge>
             </div>
 
             <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 scrollbar-thin">
               {tables.length === 0 && (
                 <p className="py-8 text-center text-xs text-muted-foreground">
-                  No hay mesas registradas. Agrega la primera arriba.
+                  {t('adminTables.noTables')}
                 </p>
               )}
               {tables.map((table) => {
@@ -393,7 +394,7 @@ export default function AdminTables() {
                         size="sm"
                         onClick={() => copyTableUrl(table)}
                         className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground"
-                        title="Copiar enlace"
+                        title={t('adminTables.copyLink')}
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </Button>
@@ -402,7 +403,7 @@ export default function AdminTables() {
                         size="sm"
                         onClick={() => downloadQrCode(table)}
                         className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground"
-                        title="Descargar QR"
+                        title={t('adminTables.downloadQr')}
                       >
                         <Download className="w-3.5 h-3.5" />
                       </Button>
@@ -411,7 +412,7 @@ export default function AdminTables() {
                         size="sm"
                         onClick={() => handleDeleteTable(table.id)}
                         className="h-8 w-8 p-0 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50"
-                        title="Eliminar Mesa"
+                        title={t('adminTables.deleteTable')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -429,7 +430,7 @@ export default function AdminTables() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-4">
               <div>
                 <span className="text-[10px] uppercase font-bold text-[#7C4EEE] tracking-widest block">
-                  Vista Previa en Vivo
+                  {t('adminTables.livePreview')}
                 </span>
                 <h2 className="text-xl font-serif font-bold text-foreground mt-0.5">
                   {selectedTable.name} {selectedTable.zone ? `· ${selectedTable.zone}` : ''}
@@ -442,7 +443,7 @@ export default function AdminTables() {
                 rel="noreferrer"
                 className="text-xs text-[#7C4EEE] hover:underline flex items-center gap-1 font-semibold"
               >
-                <span>Probar enlace de cliente</span>
+                <span>{t('adminTables.testCustomerLink')}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>
@@ -473,14 +474,14 @@ export default function AdminTables() {
                     {selectedTable.name}
                   </span>
                   <span className="text-[10px] text-zinc-600 block mt-0.5">
-                    Escanea para ordenar desde tu móvil
+                    {t('adminTables.scanToOrder')}
                   </span>
                 </div>
               </div>
 
               <div className="space-y-3 text-xs flex-1">
                 <div className="space-y-1">
-                  <span className="text-muted-foreground font-medium">Enlace Destino del QR:</span>
+                  <span className="text-muted-foreground font-medium">{t('adminTables.qrTargetLink')}</span>
                   <div className="p-2.5 rounded-xl bg-card border border-border text-[11px] font-mono text-foreground break-all select-all">
                     {getTableUrl(selectedTable.id)}
                   </div>
@@ -489,11 +490,19 @@ export default function AdminTables() {
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Smartphone className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Al escanearlo, el cliente entra al menú con la <strong>Mesa #{selectedTable.id}</strong> preseleccionada.</span>
+                    <span>
+                      {t('adminTables.preselectNote1')}{' '}
+                      <strong>{t('staff.tablePrefix')} #{selectedTable.id}</strong>{' '}
+                      {t('adminTables.preselectNote2')}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Las comandas enviadas a cocina mostrarán automáticamente la etiqueta <strong>Mesa #{selectedTable.id}</strong>.</span>
+                    <span>
+                      {t('adminTables.kitchenNote1')}{' '}
+                      <strong>{t('staff.tablePrefix')} #{selectedTable.id}</strong>
+                      {t('adminTables.kitchenNote2')}
+                    </span>
                   </div>
                 </div>
 
@@ -504,7 +513,7 @@ export default function AdminTables() {
                     className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold"
                   >
                     <Download className="w-3.5 h-3.5 mr-1.5" />
-                    <span>Descargar PNG</span>
+                    <span>{t('adminTables.downloadPng')}</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -513,7 +522,7 @@ export default function AdminTables() {
                     className="rounded-xl text-xs font-semibold"
                   >
                     <Copy className="w-3.5 h-3.5 mr-1.5" />
-                    <span>Copiar Enlace</span>
+                    <span>{t('adminTables.copyLinkButton')}</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -522,7 +531,7 @@ export default function AdminTables() {
                     className="rounded-xl text-xs font-semibold"
                   >
                     <Printer className="w-3.5 h-3.5 mr-1.5" />
-                    <span>Imprimir Caballete</span>
+                    <span>{t('adminTables.printStand')}</span>
                   </Button>
                 </div>
               </div>
@@ -537,7 +546,7 @@ export default function AdminTables() {
           <DialogHeader>
             <DialogTitle className="font-serif text-xl font-bold flex items-center gap-2">
               <Printer className="w-5 h-5 text-[#7C4EEE]" />
-              <span>Imprimir Tarjeta de Mesa #{selectedTable.id}</span>
+              <span>{t('adminTables.printDialogTitle', { number: selectedTable.id })}</span>
             </DialogTitle>
           </DialogHeader>
 
@@ -545,8 +554,7 @@ export default function AdminTables() {
             <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
-                Este código apunta a una dirección local y no abrirá la carta desde un teléfono. Configura la dirección
-                pública del sitio antes de imprimir.
+                {t('adminTables.printWarning')}
               </span>
             </div>
           )}
@@ -580,10 +588,10 @@ export default function AdminTables() {
 
             <div className="space-y-1">
               <p className="font-serif font-bold text-sm text-zinc-900">
-                ¡Ordena desde tu mesa!
+                {t('adminTables.printHeadline')}
               </p>
               <p className="text-xs text-zinc-600 max-w-xs">
-                Escanea el código QR con la cámara de tu smartphone para ver la carta y pedir sin esperas.
+                {t('adminTables.printBody')}
               </p>
             </div>
           </div>
@@ -596,7 +604,7 @@ export default function AdminTables() {
               onClick={() => setPrintDialogOpen(false)}
               className="rounded-xl"
             >
-              Cerrar
+              {t('common.close')}
             </Button>
             <Button
               type="button"
@@ -605,7 +613,7 @@ export default function AdminTables() {
               className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white px-4"
             >
               <Printer className="w-4 h-4 mr-1.5" />
-              <span>Imprimir Ahora</span>
+              <span>{t('adminTables.printNow')}</span>
             </Button>
           </DialogFooter>
         </DialogContent>
