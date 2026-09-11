@@ -10,11 +10,12 @@ One Render web service builds the React client, runs the Express API, and serves
 both from a single URL. The frontend and the API share an origin, so there is no
 proxy, no CORS setup and no second host that can quietly disappear.
 
-**This blueprint expects the PostgreSQL database to already exist** in your
-Render workspace. It is deliberately not declared in
-[render.yaml](./render.yaml): the free plan allows only one free Postgres per
-workspace, so a blueprint that tried to create a second one would fail to apply.
-Render prompts you for the connection string instead (see Step 2).
+[render.yaml](./render.yaml) declares both the `cafe-database` Postgres instance
+and the `cafe-server` web service. Render matches blueprint resources by name,
+so applying it against a workspace that already has `cafe-database` adopts that
+instance rather than creating a second one — and keeps it blueprint-managed.
+`DATABASE_URL` is wired to it automatically via `fromDatabase`; there is nothing
+to paste.
 
 ### Step 1: Push Your Code to GitHub
 1. Create a free repository on [github.com](https://github.com).
@@ -28,27 +29,20 @@ Render prompts you for the connection string instead (see Step 2).
    git push -u origin main
    ```
 
-### Step 2: Collect two values from your database
-On [dashboard.render.com](https://dashboard.render.com/), open your PostgreSQL
-instance and note:
-- Its **Region** (e.g. Oregon, Singapore, Frankfurt).
-- Its **Internal Database URL** — the one starting `postgresql://` that does
-  *not* contain `.render.com` in the host, or the shorter of the two. Internal
-  is free and fast; the External URL routes over the public internet and stops
-  working when a free database expires.
-
-If the region is not Oregon, change `region:` in [render.yaml](./render.yaml) to
-match. A service in a different region cannot reach the internal URL.
-
-### Step 3: Deploy on Render
+### Step 2: Deploy on Render
 1. Click **New +** → **Blueprint** and connect your GitHub repository.
-2. Render detects [render.yaml](./render.yaml) and asks for the one value marked
-   `sync: false` — paste the **Internal Database URL** as `DATABASE_URL`.
-3. Click **Apply**. Render creates the `cafe-server` web service, which builds
-   the client, builds the API, pushes the Prisma schema to your existing
-   database, seeds it, and starts.
+2. Render detects [render.yaml](./render.yaml). Click **Apply**. It creates (or
+   adopts) `cafe-database`, then creates `cafe-server`, which builds the client,
+   builds the API, pushes the Prisma schema, seeds it, and starts.
+
+Both resources are pinned to `oregon`. They must share a region — a service in
+another region cannot reach the database's internal connection string — so if
+you move one, move both.
 
 Your whole app is then live at `https://cafe-server-<suffix>.onrender.com`.
+**Copy that URL from the service page rather than typing it.** Render's random
+suffix is easy to transpose, and a mistyped hostname returns a plain-text
+`Not Found` that looks exactly like a broken backend.
 
 > **Creating the service by hand instead of via Blueprint?** Use **New + → Web
 > Service**, leave **Root Directory** empty (the build needs both `client/` and
@@ -56,7 +50,7 @@ Your whole app is then live at `https://cafe-server-<suffix>.onrender.com`.
 > [render.yaml](./render.yaml) verbatim. Then add `DATABASE_URL`, `JWT_SECRET`,
 > `NODE_ENV=production` and `PORT=10000` as environment variables.
 
-### Step 4: Check it worked
+### Step 3: Check it worked
 `https://cafe-server-<suffix>.onrender.com/api/health` must return JSON
 (`{"success":true,...}`). If it returns HTML, the API did not start and the
 SPA fallback is answering; if it returns a plain-text `Not Found`, the service
