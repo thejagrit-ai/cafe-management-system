@@ -63,7 +63,12 @@ const allowedOrigins = new Set([
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (error: Error | null, allowed?: boolean) => void) => {
-    if (!origin || allowedOrigins.has(origin)) {
+    const isDeploymentOrigin = Boolean(
+      origin && /^https:\/\/([a-z0-9-]+\.)*(vercel\.app|onrender\.com)$/.test(origin),
+    );
+    const isLocalOrigin = Boolean(origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
+
+    if (!origin || allowedOrigins.has(origin) || isDeploymentOrigin || isLocalOrigin) {
       callback(null, true);
       return;
     }
