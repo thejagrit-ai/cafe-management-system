@@ -55,10 +55,26 @@ app.use(compression({
     return compression.filter(req, res);
   },
 }));
-app.use(cors({
-  origin: true,
+const allowedOrigins = new Set([
+  config.clientUrl,
+  'https://cafe-management-systemm.onrender.com',
+].filter(Boolean));
+
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (error: Error | null, allowed?: boolean) => void) => {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origin is not allowed by CORS'));
+  },
   credentials: true,
-}));
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
