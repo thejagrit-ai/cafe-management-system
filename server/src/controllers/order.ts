@@ -4,6 +4,37 @@ import { successResponse, createdResponse, paginatedResponse } from '../utils/re
 import { AuthenticatedRequest } from '../types';
 import { OrderStatus } from '@prisma/client';
 
+/**
+ * Whether the requester may see this order.
+ *
+ * Deliberately a module-level function rather than a method. Routes register
+ * these handlers as bare references (`orderController.findByOrderNumber`), so
+ * Express invokes them unbound and `this` is undefined inside a class body —
+ * calling it as `this.isAuthorizedToViewOrder(...)` threw a TypeError that the catch
+ * block forwarded as a generic 500. That broke every single-order view,
+ * including the confirmation page shown right after payment.
+ */
+function isAuthorizedToViewOrder(order: any, req: AuthenticatedRequest): boolean {
+  const role = req.user?.role;
+  if (role === 'ADMIN' || role === 'STAFF') return true;
+
+  if (role === 'CUSTOMER') {
+    return Boolean(order.customerId && order.customerId === req.user?.customer?.id);
+  }
+
+  // Guest user (unauthenticated)
+  // 1. Guests cannot view registered customer orders
+  if (order.customerId) return false;
+
+  // 2. If guest token is provided, verify it matches
+  const providedToken = (req.query.guestToken as string) || (req.headers['x-guest-token'] as string);
+  if (order.guestToken && providedToken && providedToken !== order.guestToken) {
+    return false;
+  }
+
+  return true;
+}
+
 export class OrderController {
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
@@ -42,32 +73,11 @@ export class OrderController {
     }
   }
 
-  private isAuthorizedToViewOrder(order: any, req: AuthenticatedRequest): boolean {
-    const role = req.user?.role;
-    if (role === 'ADMIN' || role === 'STAFF') return true;
-
-    if (role === 'CUSTOMER') {
-      return Boolean(order.customerId && order.customerId === req.user?.customer?.id);
-    }
-
-    // Guest user (unauthenticated)
-    // 1. Guests cannot view registered customer orders
-    if (order.customerId) return false;
-
-    // 2. If guest token is provided, verify it matches
-    const providedToken = (req.query.guestToken as string) || (req.headers['x-guest-token'] as string);
-    if (order.guestToken && providedToken && providedToken !== order.guestToken) {
-      return false;
-    }
-
-    return true;
-  }
-
   async findById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const order = await orderService.findById(req.params.id);
 
-      if (!this.isAuthorizedToViewOrder(order, req)) {
+      if (!isAuthorizedToViewOrder(order, req)) {
         return res.status(403).json({ success: false, message: 'Not authorized to view this order' });
       }
 
@@ -81,7 +91,7 @@ export class OrderController {
     try {
       const order = await orderService.findByOrderNumber(req.params.orderNumber);
 
-      if (!this.isAuthorizedToViewOrder(order, req)) {
+      if (!isAuthorizedToViewOrder(order, req)) {
         return res.status(403).json({ success: false, message: 'Not authorized to view this order' });
       }
 

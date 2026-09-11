@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -31,6 +31,8 @@ import {
   Check
 } from 'lucide-react'
 import { toast } from 'sonner'
+
+type DetailErrors = Partial<Record<'name' | 'phone' | 'email', string>>
 
 /** Fallback conversion rate, used only while the loyalty balance is loading. */
 const DEFAULT_POINT_VALUE = 10
@@ -68,6 +70,12 @@ export default function CheckoutPage() {
   )
   const [guestPhone, setGuestPhone] = useState(() => user?.customer?.phone || '')
   const [guestEmail, setGuestEmail] = useState(() => user?.email || '')
+
+  // Contact-field errors, keyed by field so each input renders its own message.
+  // `detailsTouched` keeps the form quiet until the guest actually tries to
+  // confirm — flagging empty fields the moment the page opens reads as nagging.
+  const [detailErrors, setDetailErrors] = useState<DetailErrors>({})
+  const [detailsTouched, setDetailsTouched] = useState(false)
 
   const { data: addressesData } = useQuery({
     queryKey: ['addresses'],
@@ -140,6 +148,48 @@ export default function CheckoutPage() {
     }
   })
 
+  /**
+   * Validates the contact block. Returns a field→message map so each input can
+   * show its own error inline; a single toast cannot say *which* field is
+   * wrong, and on a phone the offending input is usually scrolled off screen.
+   */
+  const validateDetails = (): DetailErrors => {
+    const errors: DetailErrors = {}
+
+    const name = guestName.trim()
+    if (!name) {
+      errors.name = t('checkout.nameRequiredError')
+    } else if (name.length < 2) {
+      errors.name = t('checkout.nameTooShortError')
+    }
+
+    // Digits only, so spaces, dashes and a +91 prefix all pass. Ten is the
+    // shortest real mobile number in the markets this runs in; the upper bound
+    // leaves room for a country code.
+    const phoneDigits = guestPhone.replace(/\D/g, '')
+    if (!phoneDigits) {
+      errors.phone = t('checkout.phoneRequiredError')
+    } else if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      errors.phone = t('checkout.phoneInvalidError')
+    }
+
+    // Email stays optional — plenty of walk-in guests decline one — but a typo
+    // in a receipt address is worth catching before the order is placed.
+    const email = guestEmail.trim()
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      errors.email = t('checkout.emailInvalidError')
+    }
+
+    return errors
+  }
+
+  // Once the guest has been shown errors, clear them as they type rather than
+  // making them press Confirm again to find out whether the fix took.
+  useEffect(() => {
+    if (detailsTouched) setDetailErrors(validateDetails())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guestName, guestPhone, guestEmail, detailsTouched])
+
   const handleSelectOrderType = (type: 'DINE_IN' | 'PICKUP' | 'DELIVERY') => {
     setOrderType(type)
     if (type !== 'DINE_IN' && paymentMethod === 'CASH') {
@@ -153,6 +203,18 @@ export default function CheckoutPage() {
       return
     }
 
+    // Contact details are mandatory for every order. Staff need a name to call
+    // out and a number to reach when an item is unavailable or a delivery
+    // rider cannot find the door; an anonymous ticket leaves the counter with
+    // no way to close that loop.
+    const detailErrors = validateDetails()
+    setDetailErrors(detailErrors)
+    setDetailsTouched(true)
+    if (Object.keys(detailErrors).length > 0) {
+      toast.error(t('checkout.detailsIncompleteError'))
+      return
+    }
+
     if (orderType === 'DINE_IN' && (!tableNumber || parseInt(tableNumber, 10) <= 0)) {
       toast.error(t('checkout.invalidTableError'))
       return
@@ -163,10 +225,14 @@ export default function CheckoutPage() {
       return
     }
 
+    // Guests have no customer record, so their contact details would otherwise
+    // be lost: carry them on the order note, which is what the kitchen and
+    // counter screens display.
     let finalNotes = notes.trim()
-    if (guestName && !user) {
-      finalNotes = finalNotes ? `${finalNotes} | Customer: ${guestName}` : `Customer: ${guestName}`
-      if (guestPhone) finalNotes += ` (Tel: ${guestPhone})`
+    if (!user) {
+      const contact = `Customer: ${guestName.trim()} (Tel: ${guestPhone.trim()})`
+      finalNotes = finalNotes ? `${finalNotes} | ${contact}` : contact
+      if (guestEmail.trim()) finalNotes += ` (${guestEmail.trim()})`
     }
 
     const orderData = {
@@ -271,48 +337,85 @@ export default function CheckoutPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-muted-foreground">
+                  <label className="font-semibold text-muted-foreground" htmlFor="checkout-name">
                     {t('checkout.nameOptional')}
+                    <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
                   </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
+                      id="checkout-name"
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
+                      onBlur={() => setDetailsTouched(true)}
                       placeholder={t('checkout.namePlaceholder')}
-                      className="pl-10 h-11 rounded-xl bg-secondary/30 text-xs border-border/80"
+                      aria-required="true"
+                      aria-invalid={Boolean(detailErrors.name)}
+                      aria-describedby={detailErrors.name ? 'checkout-name-error' : undefined}
+                      className={cn('pl-10 h-11 rounded-xl bg-secondary/30 text-xs border-border/80', detailErrors.name && 'border-destructive focus-visible:ring-destructive')}
                     />
                   </div>
+                  {detailErrors.name && (
+                    <p id="checkout-name-error" role="alert" className="text-[11px] font-medium text-destructive">
+                      {detailErrors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-muted-foreground">
+                  <label className="font-semibold text-muted-foreground" htmlFor="checkout-phone">
                     {t('checkout.phoneLabel')}
+                    <span className="text-destructive ml-0.5" aria-hidden="true">*</span>
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
+                      id="checkout-phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
                       value={guestPhone}
                       onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="+57 300 123 4567"
-                      className="pl-10 h-11 rounded-xl bg-secondary/30 text-xs border-border/80"
+                      onBlur={() => setDetailsTouched(true)}
+                      placeholder={t('checkout.phonePlaceholder')}
+                      aria-required="true"
+                      aria-invalid={Boolean(detailErrors.phone)}
+                      aria-describedby={detailErrors.phone ? 'checkout-phone-error' : undefined}
+                      className={cn('pl-10 h-11 rounded-xl bg-secondary/30 text-xs border-border/80', detailErrors.phone && 'border-destructive focus-visible:ring-destructive')}
                     />
                   </div>
+                  {detailErrors.phone && (
+                    <p id="checkout-phone-error" role="alert" className="text-[11px] font-medium text-destructive">
+                      {detailErrors.phone}
+                    </p>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2 space-y-1.5">
-                  <label className="font-semibold text-muted-foreground">
+                  <label className="font-semibold text-muted-foreground" htmlFor="checkout-email">
                     {t('checkout.emailLabel')}
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
+                      id="checkout-email"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
                       value={guestEmail}
                       onChange={(e) => setGuestEmail(e.target.value)}
-                      placeholder="ejemplo@correo.com"
-                      className="pl-10 h-11 rounded-xl bg-secondary/30 text-xs border-border/80"
+                      onBlur={() => setDetailsTouched(true)}
+                      placeholder={t('checkout.emailPlaceholder')}
+                      aria-invalid={Boolean(detailErrors.email)}
+                      aria-describedby={detailErrors.email ? 'checkout-email-error' : undefined}
+                      className={cn('pl-10 h-11 rounded-xl bg-secondary/30 text-xs border-border/80', detailErrors.email && 'border-destructive focus-visible:ring-destructive')}
                     />
                   </div>
+                  {detailErrors.email && (
+                    <p id="checkout-email-error" role="alert" className="text-[11px] font-medium text-destructive">
+                      {detailErrors.email}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
