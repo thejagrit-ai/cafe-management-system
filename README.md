@@ -2,6 +2,8 @@
 
 **Developed and owned by [Norynt](https://www.norynt.app).**
 
+**Live backend:** [cafe-server-gqky.onrender.com](https://cafe-server-gqky.onrender.com)
+
 A full-stack café order and inventory management system: customer storefront, staff
 order console, and admin back office over one PostgreSQL database.
 
