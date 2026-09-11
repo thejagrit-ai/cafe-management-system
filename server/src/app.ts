@@ -26,6 +26,13 @@ import loyaltyRoutes from './routes/loyalty';
 
 const app = express();
 
+// Every hosted deploy (Vercel, Render) puts a load balancer in front of this
+// app, so the socket address is the proxy's, not the visitor's. Without this
+// the rate limiter keys every request in the world to a single IP — one busy
+// visitor would lock everyone out — and express-rate-limit v7 refuses to start
+// when it sees X-Forwarded-For it has been told not to trust.
+app.set('trust proxy', 1);
+
 // ---------------------------------------------------------------------------
 // Detect whether the client has been built and is available to serve.
 // In production single-service deploys (e.g. Render) the client build output

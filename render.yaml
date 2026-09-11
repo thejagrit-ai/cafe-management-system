@@ -35,12 +35,21 @@ services:
         fromDatabase:
           name: cafe-database
           property: connectionString
+      # Single-service deploy: the site and the API share this service's own
+      # origin. Hard-coding a separate frontend host here is what broke the
+      # last deploy — the URL it named no longer existed.
       - key: CLIENT_URL
-        value: https://client-psi-six-59.vercel.app
+        fromService:
+          type: web
+          name: cafe-server
+          property: host
       # Not needed for single-service (API is on the same origin), but
       # listed for clarity. The client falls back to /api when unset.
       # - key: VITE_API_URL
       #   value: /api
       # Public URL baked into the QR codes generated in Admin → Tables.
       - key: VITE_PUBLIC_URL
-        value: https://client-psi-six-59.vercel.app
+        fromService:
+          type: web
+          name: cafe-server
+          property: host

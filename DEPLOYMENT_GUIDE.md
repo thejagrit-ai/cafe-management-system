@@ -30,39 +30,52 @@ Render gives you:
 4. Render will automatically detect the [render.yaml](file:///c:/Users/mssi/OneDrive/Desktop/cafe%20management%20system/render.yaml) file in your project!
 5. Click **Apply**. Render will automatically provision:
    - Your **Free PostgreSQL Database** (`cafe-database`).
-   - Your **Backend API** (`cafe-server`), automatically running Prisma migrations and seeding.
-   - Your **Frontend Website** (`cafe-client`).
+   - A single **Web Service** (`cafe-server`) that builds the React client, then
+     runs the Express API and serves the built site from the same URL —
+     automatically pushing the Prisma schema and seeding on the way.
+
+Your whole app is then live at `https://cafe-server-<suffix>.onrender.com`; the
+frontend and the API share one origin, so nothing else needs configuring.
 
 ---
 
-## ⚡ Method 2: Vercel (Frontend) + Neon/Supabase (Database) + Render (Backend)
+## ⚡ Method 2: Everything on Vercel (one project, one URL)
 
-If you prefer using **Vercel** for ultra-fast frontend speeds:
+The repository root [vercel.json](./vercel.json) deploys the React client **and**
+the Express API from a single Vercel project: the SPA is served from the CDN and
+every `/api/*` request is rewritten to the serverless function in
+[api/index.ts](./api/index.ts). Because both live on the same origin there is no
+cross-origin proxy to break and nothing to configure in the client.
 
 ### 1. Free Cloud PostgreSQL (Neon.tech or Supabase)
 1. Sign up at [neon.tech](https://neon.tech) or [supabase.com](https://supabase.com).
 2. Create a free project and copy your **Postgres Connection URI** (`postgresql://...`).
 
-### 2. Free Backend on Render
-1. Go to [render.com](https://render.com) → **New Web Service**.
-2. Connect your GitHub repo, set:
-   - **Root Directory:** `server`
-   - **Build Command:** `npm install && npm run build && npx prisma db push && npm run db:seed && npm run db:repair-images`
-   - **Start Command:** `npm start`
-3. Add Environment Variables:
-   - `DATABASE_URL`: *(Your Postgres Connection String from Neon/Supabase)*
-   - `JWT_SECRET`: *(Any secret random string)*
+### 2. Deploy the project on Vercel
+1. Go to [vercel.com](https://vercel.com) → **Add New Project** and connect the repo.
+2. **Root Directory must be the repository root (`./`), not `client`.** With the
+   root set to `client`, Vercel never uploads `api/` or `server/`, so every
+   `/api/*` call returns 404. (Check this on an existing project under
+   **Settings → General → Root Directory**.)
+3. Leave the build settings alone — `vercel.json` supplies them.
+4. Add Environment Variables:
+   - `DATABASE_URL`: *(your Postgres connection string)*
+   - `JWT_SECRET`: *(any long random string)*
    - `NODE_ENV`: `production`
-   - `CLIENT_URL`: `https://your-frontend.vercel.app`
+   - `VITE_PUBLIC_URL`: `https://your-app.vercel.app` *(baked into the table QR codes)*
+5. Deploy, then create the tables once from your machine:
+   ```bash
+   cd server
+   DATABASE_URL="<your connection string>" npx prisma db push
+   DATABASE_URL="<your connection string>" npm run db:seed
+   ```
 
-### 3. Free Frontend on Vercel
-1. Go to [vercel.com](https://vercel.com) → **Add New Project**.
-2. Connect your GitHub repo, set:
-   - **Root Directory:** `client`
-   - **Framework Preset:** `Vite`
-3. Add Environment Variable:
-   - `VITE_API_URL`: `https://your-backend.onrender.com/api`
-4. Click **Deploy**!
+### Trade-off to be aware of
+Serverless functions cannot hold a connection open indefinitely, so the
+Server-Sent Events stream at `/api/events` reconnects every ~30 seconds. Order
+and inventory screens still refresh, just not instantly. If live push matters
+for your kitchen display, use **Method 1** — a Render web service is a
+long-running process and keeps the stream open.
 
 ---
 
