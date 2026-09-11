@@ -82,6 +82,14 @@ function classifyReachability(baseUrl: string): Reachability {
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
     return 'unreachable'
   }
+  // A single-label host such as `cafe-server-gqky` has no public DNS record, so
+  // a scanning phone gets DNS_PROBE_FINISHED_BAD_CONFIG rather than the menu.
+  // This is not hypothetical: Render's `fromService … property: host` blueprint
+  // value resolves to exactly that shape, and without this check the panel
+  // reported the resulting address as fine while every printed code was dead.
+  if (!hostname.includes('.')) {
+    return 'unreachable'
+  }
   // Private ranges resolve only for devices on the same network.
   if (/^10\./.test(hostname) || /^192\.168\./.test(hostname) || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) {
     return 'lan-only'

@@ -49,22 +49,18 @@ services:
         fromDatabase:
           name: cafe-database
           property: connectionString
-      # Single-service deploy: the site and the API share this service's own
-      # origin. The previous config hard-coded a separate frontend host, and a
-      # two-letter typo in a hostname elsewhere is what produced the 404s — a
-      # value derived from the service itself cannot be mistyped.
+      # Must be the service's full public URL, e.g.
+      # https://cafe-server-xxxx.onrender.com — it is what email verification
+      # links are built from, so a bare hostname yields unclickable mail.
+      #
+      # Deliberately NOT `fromService … property: host`: that resolves to the
+      # single-label internal host (`cafe-server-xxxx`, no domain), which is
+      # unreachable from the public internet. Render exposes no blueprint
+      # property for a service's external URL, so this is prompted on apply.
       - key: CLIENT_URL
-        fromService:
-          type: web
-          name: cafe-server
-          property: host
-      # Not needed for single-service (API is on the same origin), but
-      # listed for clarity. The client falls back to /api when unset.
-      # - key: VITE_API_URL
-      #   value: /api
-      # Public URL baked into the QR codes generated in Admin → Tables.
-      - key: VITE_PUBLIC_URL
-        fromService:
-          type: web
-          name: cafe-server
-          property: host
+        sync: false
+      # VITE_API_URL and VITE_PUBLIC_URL are intentionally unset. On a
+      # single-service deploy the client is served from the same origin as the
+      # API, so it correctly falls back to `/api` for requests and to
+      # `window.location.origin` for the table QR codes. Setting either one
+      # can only introduce a wrong value.

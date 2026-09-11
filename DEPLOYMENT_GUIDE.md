@@ -44,13 +44,27 @@ Your whole app is then live at `https://cafe-server-<suffix>.onrender.com`.
 suffix is easy to transpose, and a mistyped hostname returns a plain-text
 `Not Found` that looks exactly like a broken backend.
 
+### Step 3: Set CLIENT_URL to that URL
+Render prompts for `CLIENT_URL` on apply — paste the **full** service URL,
+scheme and domain included (`https://cafe-server-<suffix>.onrender.com`). Email
+verification links are built from it, so a bare hostname produces mail nobody
+can click. There is no blueprint property that yields a service's external URL,
+which is why this one value is manual.
+
+Leave `VITE_PUBLIC_URL` and `VITE_API_URL` unset. On a single-service deploy the
+client is served from the same origin as the API, so it resolves `/api` and the
+table QR-code address from the browser automatically. Setting either can only
+introduce a wrong value — a blueprint-derived `VITE_PUBLIC_URL` once baked the
+single-label host `cafe-server-xxxx` into every printed QR code, and no phone
+could resolve it.
+
 > **Creating the service by hand instead of via Blueprint?** Use **New + → Web
 > Service**, leave **Root Directory** empty (the build needs both `client/` and
 > `server/`), and copy the `buildCommand` and `startCommand` out of
 > [render.yaml](./render.yaml) verbatim. Then add `DATABASE_URL`, `JWT_SECRET`,
 > `NODE_ENV=production` and `PORT=10000` as environment variables.
 
-### Step 3: Check it worked
+### Step 4: Check it worked
 `https://cafe-server-<suffix>.onrender.com/api/health` must return JSON
 (`{"success":true,...}`). If it returns HTML, the API did not start and the
 SPA fallback is answering; if it returns a plain-text `Not Found`, the service
