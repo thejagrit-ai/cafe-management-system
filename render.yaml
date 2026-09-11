@@ -5,16 +5,23 @@ databases:
     plan: free
 
 services:
-  # Backend API Web Service (Node / Express / Prisma)
+  # Single web service: the Express server builds and serves the React client.
+  # The client bundle is compiled first, then the API, so the server can serve
+  # the SPA from ../client/dist at runtime.
   - type: web
-    name: cafe-server
+    name: cafe-management-systemm
     runtime: node
     plan: free
-    rootDir: server
-    # db:seed is a no-op once the database has data (it used to truncate every
-    # table on every deploy). db:repair-images repoints any rows still holding
-    # a dead remote photo URL at the assets bundled with the client.
-    buildCommand: npm install --include=dev && npm run build && npx prisma db push && npm run db:seed && npm run db:repair-images
+    # Build from the repo root so both client/ and server/ are accessible.
+    # 1. Install root-level workspace deps (pulls in client + server).
+    # 2. Build the React client (outputs to client/dist).
+    # 3. Build the Express server (outputs to server/dist).
+    # 4. Push the Prisma schema & seed.
+    buildCommand: >-
+      npm install --include=dev &&
+      npm run build:client &&
+      npm run build:server &&
+      cd server && npx prisma db push && npm run db:seed && npm run db:repair-images
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -28,23 +35,11 @@ services:
           name: cafe-database
           property: connectionString
       - key: CLIENT_URL
-        value: https://cafe-client.onrender.com
-
-  # Frontend Static Website (React / Vite)
-  - type: web
-    name: cafe-client
-    runtime: static
-    rootDir: client
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_URL
-        value: https://cafe-server.onrender.com/api
-      # Address encoded into the table QR codes. Must be the public site, not
-      # whatever host the admin happens to have the console open on.
+        value: https://cafe-management-systemm.onrender.com
+      # Not needed for single-service (API is on the same origin), but
+      # listed for clarity. The client falls back to /api when unset.
+      # - key: VITE_API_URL
+      #   value: /api
+      # Public URL baked into the QR codes generated in Admin → Tables.
       - key: VITE_PUBLIC_URL
-        value: https://cafe-client.onrender.com
+        value: https://cafe-management-systemm.onrender.com

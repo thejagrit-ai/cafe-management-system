@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import fs from 'fs';
 import { config } from './config';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
@@ -24,8 +26,20 @@ import loyaltyRoutes from './routes/loyalty';
 
 const app = express();
 
+// ---------------------------------------------------------------------------
+// Detect whether the client has been built and is available to serve.
+// In production single-service deploys (e.g. Render) the client build output
+// lives at `../client/dist` relative to the server root.
+// ---------------------------------------------------------------------------
+const CLIENT_DIST = path.resolve(__dirname, '../../client/dist');
+const CLIENT_INDEX = path.join(CLIENT_DIST, 'index.html');
+const hasClientBuild = fs.existsSync(CLIENT_INDEX);
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  // When serving the SPA we need inline scripts/styles from Vite's build to
+  // work. In a two-service setup these headers don't matter for the API.
+  contentSecurityPolicy: false,
 }));
 
 // gzip every JSON response. Menu, order and report payloads are highly
@@ -57,15 +71,7 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-app.get('/', (_req, res) => {
-  res.json({
-    status: 'online',
-    message: 'The Coffee Bean Cafe API is running live ☕',
-    version: '1.0.0',
-    health: '/api/health',
-    timestamp: new Date().toISOString()
-  });
-});
+// ── API routes ──────────────────────────────────────────────────────────────
 
 app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'Server is healthy', timestamp: new Date().toISOString() });
@@ -87,7 +93,38 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 
-app.use(notFoundHandler);
+// ── 404 for unknown API routes ──────────────────────────────────────────────
+// This must come BEFORE the static-file / SPA fallback so that genuine API
+// misses get a JSON 404 instead of the HTML index page.
+app.all('/api/*', notFoundHandler);
+
+// ── Static files + SPA fallback ─────────────────────────────────────────────
+// When the client build is present (single-service deploy), serve its assets
+// and fall back to index.html for any non-API route so React Router can
+// handle client-side paths like /menu?table=1, /cart, /admin, etc.
+if (hasClientBuild) {
+  app.use(express.static(CLIENT_DIST, { maxAge: '1y', immutable: true }));
+
+  // SPA fallback: every GET that didn't match an API route or a static file
+  // receives the React shell so the client router can take over.
+  app.get('*', (_req, res) => {
+    res.sendFile(CLIENT_INDEX);
+  });
+} else {
+  // Two-service / local-dev mode: the frontend is served separately.
+  app.get('/', (_req, res) => {
+    res.json({
+      status: 'online',
+      message: 'The Coffee Bean Cafe API is running live ☕',
+      version: '1.0.0',
+      health: '/api/health',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  app.use(notFoundHandler);
+}
+
 app.use(errorHandler);
 
 export default app;
