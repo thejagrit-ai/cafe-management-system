@@ -41,7 +41,8 @@ export const ordersApi = {
 
   getById: (id: string) => api.get<Order>(`/orders/${id}`),
 
-  getByOrderNumber: (orderNumber: string) => api.get<Order>(`/orders/number/${orderNumber}`),
+  getByOrderNumber: (orderNumber: string, guestToken?: string) =>
+    api.get<Order>(`/orders/number/${orderNumber}${guestToken ? `?guestToken=${encodeURIComponent(guestToken)}` : ''}`),
 
   getMyOrders: (params?: PaginationParams) => api.get<Order[]>('/orders/my-orders', params),
 

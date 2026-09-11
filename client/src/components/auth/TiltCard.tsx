@@ -68,14 +68,20 @@ export function TiltCard({ front, back, flipped, className }: TiltCardProps) {
           }}
         >
           <div
-            className="[grid-area:stack] [backface-visibility:hidden]"
+            className={cn(
+              "[grid-area:stack] [backface-visibility:hidden]",
+              flipped && "pointer-events-none opacity-0 invisible"
+            )}
             aria-hidden={flipped}
           >
             {front}
           </div>
 
           <div
-            className="[grid-area:stack] [backface-visibility:hidden] [transform:rotateY(180deg)]"
+            className={cn(
+              "[grid-area:stack] [backface-visibility:hidden] [transform:rotateY(180deg)]",
+              !flipped && "pointer-events-none opacity-0 invisible"
+            )}
             aria-hidden={!flipped}
           >
             {back}

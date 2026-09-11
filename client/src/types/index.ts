@@ -122,6 +122,7 @@ export interface Order {
   type: 'DINE_IN' | 'PICKUP' | 'DELIVERY';
   status: 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED';
   tableNumber?: number;
+  guestToken?: string;
   subtotal: number;
   taxAmount: number;
   discountAmount: number;

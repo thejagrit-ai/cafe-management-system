@@ -21,6 +21,7 @@ const OrderConfirmationPage = lazy(() => import('@/pages/customer/OrderConfirmat
 const OrderHistoryPage = lazy(() => import('@/pages/customer/OrderHistoryPage'))
 const CustomerDashboard = lazy(() => import('@/pages/customer/CustomerDashboard'))
 const VerifyEmailPage = lazy(() => import('@/pages/customer/VerifyEmailPage'))
+const TableRedirectPage = lazy(() => import('@/pages/customer/TableRedirectPage'))
 
 const AuthPage = lazy(() => import('@/pages/auth/AuthPage'))
 
@@ -124,6 +125,10 @@ export default function App() {
       <Route path="/" element={<CustomerLayout><HomePage /></CustomerLayout>} />
       <Route path="/menu" element={<CustomerLayout><MenuPage /></CustomerLayout>} />
       <Route path="/menu/:id" element={<CustomerLayout><ProductDetailPage /></CustomerLayout>} />
+      {/* Table QR code scanning routes */}
+      <Route path="/table" element={<Suspense fallback={<LoadingScreen />}><TableRedirectPage /></Suspense>} />
+      <Route path="/table/:tableId" element={<Suspense fallback={<LoadingScreen />}><TableRedirectPage /></Suspense>} />
+      <Route path="/t/:tableId" element={<Suspense fallback={<LoadingScreen />}><TableRedirectPage /></Suspense>} />
       {/* Public: the link is often opened on a different device from the one
           that registered, where nobody is signed in. */}
       <Route path="/verify-email" element={<CustomerLayout><VerifyEmailPage /></CustomerLayout>} />

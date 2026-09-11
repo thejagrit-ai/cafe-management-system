@@ -10,6 +10,7 @@ export class OrderController {
       const order = await orderService.create(req.body, req);
       createdResponse(res, order, 'Order created successfully');
     } catch (error) {
+      console.error('CREATE ORDER ERROR:', error);
       next(error);
     }
   }
@@ -41,13 +42,32 @@ export class OrderController {
     }
   }
 
+  private isAuthorizedToViewOrder(order: any, req: AuthenticatedRequest): boolean {
+    const role = req.user?.role;
+    if (role === 'ADMIN' || role === 'STAFF') return true;
+
+    if (role === 'CUSTOMER') {
+      return Boolean(order.customerId && order.customerId === req.user?.customer?.id);
+    }
+
+    // Guest user (unauthenticated)
+    // 1. Guests cannot view registered customer orders
+    if (order.customerId) return false;
+
+    // 2. If guest token is provided, verify it matches
+    const providedToken = (req.query.guestToken as string) || (req.headers['x-guest-token'] as string);
+    if (order.guestToken && providedToken && providedToken !== order.guestToken) {
+      return false;
+    }
+
+    return true;
+  }
+
   async findById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const order = await orderService.findById(req.params.id);
-      
-      // Check authorization
-      const isCustomer = req.user?.role === 'CUSTOMER';
-      if (isCustomer && order.customerId !== req.user?.customer?.id) {
+
+      if (!this.isAuthorizedToViewOrder(order, req)) {
         return res.status(403).json({ success: false, message: 'Not authorized to view this order' });
       }
 
@@ -61,10 +81,7 @@ export class OrderController {
     try {
       const order = await orderService.findByOrderNumber(req.params.orderNumber);
 
-      // Same ownership rule as findById: an order number must not act as a
-      // bearer token for someone else's order details.
-      const isCustomer = req.user?.role === 'CUSTOMER';
-      if (isCustomer && order.customerId !== req.user?.customer?.id) {
+      if (!this.isAuthorizedToViewOrder(order, req)) {
         return res.status(403).json({ success: false, message: 'Not authorized to view this order' });
       }
 

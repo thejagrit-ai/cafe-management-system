@@ -179,6 +179,7 @@ export class OrderService {
       const totalAmount = calculateTotal(subtotal, taxAmount, discountAmount, deliveryFee);
 
       const orderNumber = generateOrderNumber();
+      const guestToken = customerId ? undefined : `GT-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
 
       // If customer paid upfront with Card/Online/UPI, set status directly to CONFIRMED
       const isPaidUpfront = data.paymentMethod && data.paymentMethod !== PaymentMethod.CASH;
@@ -191,6 +192,7 @@ export class OrderService {
           status: initialStatus,
           confirmedAt: isPaidUpfront ? new Date() : undefined,
           tableNumber: data.tableNumber,
+          guestToken,
           customerId,
           employeeId: req.user?.employee?.id,
           subtotal,

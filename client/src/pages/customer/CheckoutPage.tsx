@@ -123,7 +123,17 @@ export default function CheckoutPage() {
       // The balance just changed if points were spent, and points are earned
       // when the order completes - either way the cached figure is stale.
       queryClient.invalidateQueries({ queryKey: ['my-loyalty'] })
-      navigate(`/order-confirmation/${response.data?.orderNumber}`)
+      const order = response.data
+      if (order?.orderNumber && order?.guestToken && typeof window !== 'undefined') {
+        try {
+          const stored = JSON.parse(sessionStorage.getItem('cafe_guest_tokens') || '{}')
+          stored[order.orderNumber] = order.guestToken
+          sessionStorage.setItem('cafe_guest_tokens', JSON.stringify(stored))
+        } catch {
+          // ignore storage errors
+        }
+      }
+      navigate(`/order-confirmation/${order?.orderNumber}`)
     },
     onError: (error: any) => {
       toast.error(error.message || t('errors.genericTitle'))

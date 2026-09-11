@@ -24,11 +24,22 @@ export default function OrderConfirmationPage() {
   const [isRegistering, setIsRegistering] = useState(false)
   const [registeredSuccess, setRegisteredSuccess] = useState(false)
 
-  const { data, isLoading, isError } = useQuery({
+  const getGuestToken = () => {
+    if (!orderNumber || typeof window === 'undefined') return undefined
+    try {
+      const stored = JSON.parse(sessionStorage.getItem('cafe_guest_tokens') || '{}')
+      return stored[orderNumber]
+    } catch {
+      return undefined
+    }
+  }
+
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['order-by-number', orderNumber],
-    queryFn: () => ordersApi.getByOrderNumber(orderNumber!),
+    queryFn: () => ordersApi.getByOrderNumber(orderNumber!, getGuestToken()),
     enabled: Boolean(orderNumber),
     refetchInterval: 10_000,
+    retry: false,
   })
 
   const order = data?.data
@@ -54,7 +65,7 @@ export default function OrderConfirmationPage() {
       })
 
       setRegisteredSuccess(true)
-      toast.success(`${t('orderConfirmation.accountCreated')} \ud83c\udf89`)
+      toast.success(`${t('orderConfirmation.accountCreated')} 🎉`)
     } catch (err: any) {
       toast.error(err?.message || t('orderConfirmation.accountFailed'))
     } finally {
@@ -73,11 +84,21 @@ export default function OrderConfirmationPage() {
   }
 
   if (isError || !order) {
+    const isForbidden = (error as any)?.status === 403 || (error as any)?.response?.status === 403
     return (
-      <div className="container mx-auto py-24 text-center">
-        <h1 className="h3">{t('errors.pageNotFoundTitle')}</h1>
-        <p className="mt-3 text-muted-foreground">{t('errors.pageNotFoundDesc')}</p>
-        <Link to="/menu" className="btn-cafe mt-8">
+      <div className="container mx-auto py-24 text-center px-4 max-w-md">
+        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto mb-4">
+          <UtensilsCrossed className="w-8 h-8" />
+        </div>
+        <h1 className="h3 text-foreground font-serif">
+          {isForbidden ? 'Access Denied' : t('errors.pageNotFoundTitle')}
+        </h1>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {isForbidden
+            ? 'You are not authorized to view the details of this order. Orders are private to the session or customer account that placed them.'
+            : t('errors.pageNotFoundDesc')}
+        </p>
+        <Link to="/menu" className="btn-cafe mt-8 inline-block">
           {t('checkout.backToMenu')}
         </Link>
       </div>
