@@ -58,6 +58,7 @@ app.use(compression({
 const allowedOrigins = new Set([
   config.clientUrl,
   'https://cafe-management-systemm.onrender.com',
+  'https://client-psi-six-59.vercel.app',
 ].filter(Boolean));
 
 const corsOptions = {

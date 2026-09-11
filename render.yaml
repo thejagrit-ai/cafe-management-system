@@ -9,7 +9,7 @@ services:
   # The client bundle is compiled first, then the API, so the server can serve
   # the SPA from ../client/dist at runtime.
   - type: web
-    name: cafe-management-systemm
+    name: cafe-server
     runtime: node
     plan: free
     # Build from the repo root so both client/ and server/ are accessible.
@@ -36,11 +36,11 @@ services:
           name: cafe-database
           property: connectionString
       - key: CLIENT_URL
-        value: https://cafe-management-systemm.onrender.com
+        value: https://client-psi-six-59.vercel.app
       # Not needed for single-service (API is on the same origin), but
       # listed for clarity. The client falls back to /api when unset.
       # - key: VITE_API_URL
       #   value: /api
       # Public URL baked into the QR codes generated in Admin → Tables.
       - key: VITE_PUBLIC_URL
-        value: https://cafe-management-systemm.onrender.com
+        value: https://client-psi-six-59.vercel.app
