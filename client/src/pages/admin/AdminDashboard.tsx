@@ -21,7 +21,7 @@ import {
   ArrowRight,
   BarChart3,
   Coffee,
-  DollarSign,
+  IndianRupee,
   RotateCcw,
   Package,
   ChevronRight,
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
   const [timeRange, setTimeRange] = useState<7 | 14 | 30>(30)
   const [chartMetric, setChartMetric] = useState<'revenue' | 'orders'>('revenue')
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: ['admin-dashboard', { days: timeRange }],
     queryFn: () => dashboardApi.getAdminDashboard({ days: timeRange }),
     refetchInterval: 15000, // Live poll every 15s
@@ -74,7 +74,30 @@ export default function AdminDashboard() {
     )
   }
 
-  if (!dashboard) return null
+  if (isError || !dashboard) {
+    return (
+      <div className="p-8 sm:p-12 text-center rounded-2xl bg-card border border-border space-y-4 my-6 shadow-xs max-w-lg mx-auto">
+        <div className="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
+          <AlertTriangle className="w-6 h-6" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="font-serif font-bold text-lg text-foreground">
+            {t('adminDashboard.loadErrorTitle', { defaultValue: 'Unable to Load Dashboard' })}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {error instanceof Error ? error.message : t('adminDashboard.loadErrorDesc', { defaultValue: 'Could not fetch dashboard metrics from the server.' })}
+          </p>
+        </div>
+        <Button
+          onClick={() => refetch()}
+          className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold px-4 py-2"
+        >
+          <RotateCcw className="w-3.5 h-3.5 mr-2" />
+          <span>{t('common.refresh', { defaultValue: 'Refresh' })}</span>
+        </Button>
+      </div>
+    )
+  }
 
   // Calculate totals for period
   const totalPeriodRevenue = (dashboard.revenueTrend || []).reduce((acc, curr) => acc + (curr.revenue || 0), 0)
@@ -102,7 +125,7 @@ export default function AdminDashboard() {
       label: t('admin.salesToday'),
       value: formatCurrency(Number(dashboard.stats.todaysSales)),
       subtext: t('adminDashboard.completedOrdersSub', { count: dashboard.stats.completedOrders }),
-      icon: DollarSign,
+      icon: IndianRupee,
       color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/40',
     },
     {
@@ -341,7 +364,7 @@ export default function AdminDashboard() {
                   stroke="currentColor"
                   className="text-muted-foreground"
                   tickLine={false}
-                  tickFormatter={(v) => (chartMetric === 'revenue' ? `$${(v / 1000).toFixed(0)}k` : v)}
+                  tickFormatter={(v) => (chartMetric === 'revenue' ? `₹${(v / 1000).toFixed(0)}k` : v)}
                 />
                 <Tooltip
                   formatter={(value: number) => [

@@ -22,7 +22,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { Button } from '@/components/ui/button'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { CartDrawer } from '@/components/CartDrawer'
 import { LoyaltyModal } from '@/components/LoyaltyModal'
@@ -125,7 +124,6 @@ export function Navbar() {
 
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-3">
-              <LanguageSwitcher />
 
               {isAuthenticated && user?.role === 'CUSTOMER' && (
                 <LoyaltyModal />
@@ -505,12 +503,11 @@ export function Navbar() {
                 </div>
               </div>
 
-              {/* Drawer Footer: Language + Theme + Logout */}
+              {/* Drawer Footer: Theme + Logout */}
               <div className="pt-4 border-t border-border/80 space-y-3 mt-6 font-sans">
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-[11px] font-semibold text-muted-foreground">{t('navigation.languageAndTheme')}</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground">{t('common.theme')}</span>
                   <div className="flex items-center gap-2">
-                    <LanguageSwitcher showIcon={true} />
                     <ThemeToggle />
                   </div>
                 </div>

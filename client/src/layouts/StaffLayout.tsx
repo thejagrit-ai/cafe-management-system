@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
@@ -6,7 +6,6 @@ import { useRealtimeEvents } from '@/hooks/useRealtimeEvents'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ConsoleFooter } from '@/components/ConsoleFooter'
 import { Button } from '@/components/ui/button'
-import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { cn } from '@/utils/lib'
 import {
@@ -15,16 +14,34 @@ import {
   Package,
   LogOut,
   Coffee,
-  ChefHat
+  ChefHat,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react'
 
 export default function StaffLayout() {
   const { t } = useTranslation()
   const { logout, user } = useAuth()
   const location = useLocation()
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('cafe_staff_sidebar_collapsed') === 'true'
+    }
+    return false
+  })
 
   // Real-time SSE updates for live kitchen / staff console
   useRealtimeEvents()
+
+  const toggleCollapsed = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev
+      localStorage.setItem('cafe_staff_sidebar_collapsed', String(next))
+      return next
+    })
+  }
 
   const sidebarLinks = [
     { href: '/staff', label: t('staffNav.kds'), icon: LayoutDashboard },
@@ -33,32 +50,69 @@ export default function StaffLayout() {
   ]
 
   return (
-    <div className="flex min-h-screen bg-secondary/20 text-foreground font-sans transition-colors duration-200">
+    <div className="flex h-screen w-full overflow-hidden bg-secondary/20 text-foreground font-sans transition-colors duration-200">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 bg-card border-r border-border flex-col justify-between shrink-0 sticky top-0 h-screen">
+      <aside
+        className={cn(
+          "hidden md:flex bg-card border-r border-border flex-col justify-between shrink-0 h-full relative z-40 transition-all duration-300 ease-in-out",
+          isCollapsed ? "w-20" : "w-64"
+        )}
+      >
+        {/* Floating Edge Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          className="hidden md:flex absolute -right-3.5 top-5 z-50 w-7 h-7 rounded-full bg-card border border-border shadow-md text-muted-foreground hover:text-foreground hover:bg-secondary hover:scale-110 active:scale-95 transition-all items-center justify-center cursor-pointer"
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? <ChevronRight className="w-4 h-4 text-[#7C4EEE]" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+
         <div>
           {/* Brand Header */}
-          <div className="p-5 border-b border-border/80 flex items-center justify-between">
-            <Link to="/staff" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#7C4EEE] text-white flex items-center justify-center font-bold shadow-xs">
+          <div className={cn("border-b border-border/80 flex items-center transition-all duration-300", isCollapsed ? "p-3.5 justify-center" : "p-4")}>
+            <Link to="/staff" className="flex items-center gap-2.5 min-w-0" title="The Coffee Bean KDS">
+              <div className="w-9 h-9 rounded-xl bg-[#7C4EEE] text-white flex items-center justify-center font-bold shadow-xs shrink-0">
                 <Coffee className="h-5 w-5" />
               </div>
-              <div>
-                <span className="font-bold text-base text-foreground block leading-tight">
-                  Café Origen
-                </span>
-                <span className="text-[10px] tracking-wider uppercase font-semibold text-muted-foreground">
-                  {t('staffNav.brandTagline')}
-                </span>
-              </div>
+              {!isCollapsed && (
+                <div className="overflow-hidden min-w-0">
+                  <span className="font-bold text-base text-foreground block leading-tight truncate">
+                    The Coffee Bean
+                  </span>
+                  <span className="text-[10px] tracking-wider uppercase font-semibold text-muted-foreground block truncate">
+                    {t('staffNav.brandTagline')}
+                  </span>
+                </div>
+              )}
             </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="p-3.5 space-y-1.5">
+          <nav className={cn("space-y-1.5 transition-all duration-300", isCollapsed ? "p-2" : "p-3.5")}>
             {sidebarLinks.map((link) => {
               const Icon = link.icon
               const isActive = location.pathname === link.href
+
+              if (isCollapsed) {
+                return (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    title={link.label}
+                    className={cn(
+                      "flex items-center justify-center w-11 h-11 mx-auto rounded-xl text-xs font-semibold transition-all",
+                      isActive
+                        ? "bg-[#7C4EEE] text-white shadow-xs"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                    )}
+                  >
+                    <Icon className={cn("h-5 w-5 shrink-0", isActive ? "text-white" : "text-muted-foreground")} />
+                  </Link>
+                )
+              }
+
               return (
                 <Link
                   key={link.href}
@@ -79,32 +133,46 @@ export default function StaffLayout() {
         </div>
 
         {/* Bottom Profile & Actions */}
-        <div className="p-4 border-t border-border/80 space-y-3 bg-card">
-          <div className="px-2">
-            <p className="text-xs font-semibold text-foreground truncate">
-              {user?.employee ? `${user.employee.firstName} ${user.employee.lastName || ''}` : user?.email}
-            </p>
-            <span className="text-[10px] text-[#7C4EEE] uppercase tracking-widest font-mono font-bold">
-              {t('staffNav.staffActive')}
-            </span>
-          </div>
+        <div className={cn("border-t border-border/80 bg-card transition-all duration-300", isCollapsed ? "p-2.5 text-center" : "p-4 space-y-3")}>
+          {!isCollapsed ? (
+            <>
+              <div className="px-2">
+                <p className="text-xs font-semibold text-foreground truncate">
+                  {user?.employee ? `${user.employee.firstName} ${user.employee.lastName || ''}` : user?.email}
+                </p>
+                <span className="text-[10px] text-[#7C4EEE] uppercase tracking-widest font-mono font-bold">
+                  {t('staffNav.staffActive')}
+                </span>
+              </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full rounded-xl text-xs hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 transition-colors"
-            onClick={() => logout()}
-          >
-            <LogOut className="h-3.5 w-3.5 mr-2" />
-            <span>{t('navigation.logout')}</span>
-          </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full rounded-xl text-xs hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 transition-colors"
+                onClick={() => logout()}
+              >
+                <LogOut className="h-3.5 w-3.5 mr-2" />
+                <span>{t('navigation.logout')}</span>
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-11 h-11 p-0 rounded-xl mx-auto flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 transition-colors"
+              onClick={() => logout()}
+              title={t('navigation.logout')}
+            >
+              <LogOut className="h-4 w-4 text-rose-600" />
+            </Button>
+          )}
         </div>
       </aside>
 
       {/* Main Screen Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-all duration-300">
         {/* Top Header */}
-        <header className="h-16 border-b border-border/80 bg-card/90 backdrop-blur-sm px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
+        <header className="h-16 shrink-0 border-b border-border/80 bg-card/90 backdrop-blur-sm px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#7C4EEE] text-white flex items-center justify-center font-bold md:hidden shadow-xs">
               <ChefHat className="h-4 w-4" />
@@ -121,7 +189,6 @@ export default function StaffLayout() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
-            <LanguageSwitcher showIcon={true} />
             <Button
               variant="ghost"
               size="sm"

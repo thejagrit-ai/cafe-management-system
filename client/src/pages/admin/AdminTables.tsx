@@ -28,14 +28,14 @@ interface TableItem {
 }
 
 const DEFAULT_TABLES: TableItem[] = [
-  { id: 1, name: 'Mesa 1', zone: 'Salón Principal' },
-  { id: 2, name: 'Mesa 2', zone: 'Salón Principal' },
-  { id: 3, name: 'Mesa 3', zone: 'Salón Principal' },
-  { id: 4, name: 'Mesa 4', zone: 'Ventana' },
-  { id: 5, name: 'Mesa 5', zone: 'Ventana' },
-  { id: 6, name: 'Mesa 6', zone: 'Terraza' },
-  { id: 7, name: 'Mesa 7', zone: 'Terraza' },
-  { id: 8, name: 'Mesa 8', zone: 'Barra' },
+  { id: 1, name: 'Table 1', zone: 'Main Hall' },
+  { id: 2, name: 'Table 2', zone: 'Main Hall' },
+  { id: 3, name: 'Table 3', zone: 'Main Hall' },
+  { id: 4, name: 'Table 4', zone: 'Window' },
+  { id: 5, name: 'Table 5', zone: 'Window' },
+  { id: 6, name: 'Table 6', zone: 'Terrace' },
+  { id: 7, name: 'Table 7', zone: 'Terrace' },
+  { id: 8, name: 'Table 8', zone: 'Bar' },
 ]
 
 const BASE_URL_STORAGE_KEY = 'cafe_public_base_url'
@@ -106,7 +106,7 @@ export default function AdminTables() {
 
   const [selectedTableId, setSelectedTableId] = useState<number>(() => (tables[0] ?? DEFAULT_TABLES[0]).id)
   const [newTableNum, setNewTableNum] = useState<string>('')
-  const [newTableZone, setNewTableZone] = useState<string>('Salón Principal')
+  const [newTableZone, setNewTableZone] = useState<string>('Main Hall')
   const [printDialogOpen, setPrintDialogOpen] = useState<boolean>(false)
   const [baseUrl, setBaseUrl] = useState<string>(resolveInitialBaseUrl)
   const [baseUrlDraft, setBaseUrlDraft] = useState<string>(resolveInitialBaseUrl)
@@ -138,7 +138,7 @@ export default function AdminTables() {
       return
     }
 
-    const updated = [...tables, { id: num, name: `Mesa ${num}`, zone: newTableZone }].sort((a, b) => a.id - b.id)
+    const updated = [...tables, { id: num, name: `Table ${num}`, zone: newTableZone }].sort((a, b) => a.id - b.id)
     saveTables(updated)
     setNewTableNum('')
     toast.success(t('adminTables.tableAdded', { number: num }))
@@ -189,7 +189,7 @@ export default function AdminTables() {
     }
     const url = canvas.toDataURL('image/png')
     const link = document.createElement('a')
-    link.download = `QR-Mesa-${table.id}-The-Coffee-Bean.png`
+    link.download = `QR-Table-${table.id}-The-Coffee-Bean.png`
     link.href = url
     link.click()
     toast.success(t('adminTables.qrDownloaded', { name: table.name }))
@@ -326,10 +326,10 @@ export default function AdminTables() {
                 onChange={(e) => setNewTableZone(e.target.value)}
                 className="h-10 px-3 rounded-xl border border-border bg-card text-xs font-medium focus:outline-none"
               >
-                <option value="Salón Principal">{t('adminTables.zoneMain')}</option>
-                <option value="Terraza">{t('adminTables.zoneTerrace')}</option>
-                <option value="Ventana">{t('adminTables.zoneWindow')}</option>
-                <option value="Barra">{t('adminTables.zoneBar')}</option>
+                <option value="Main Hall">{t('adminTables.zoneMain')}</option>
+                <option value="Terrace">{t('adminTables.zoneTerrace')}</option>
+                <option value="Window">{t('adminTables.zoneWindow')}</option>
+                <option value="Bar">{t('adminTables.zoneBar')}</option>
               </select>
               <Button type="submit" size="sm" className="h-10 rounded-xl bg-[#7C4EEE] text-white px-3 text-xs">
                 <Plus className="w-4 h-4" />

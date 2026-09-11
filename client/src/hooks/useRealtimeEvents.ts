@@ -46,14 +46,14 @@ export function useRealtimeEvents() {
 
             // Toast alert
             const tableText = order?.tableNumber
-              ? `Mesa #${order.tableNumber}`
+              ? `Table #${order.tableNumber}`
               : order?.type === 'DINE_IN'
-              ? 'En Mesa'
+              ? 'Dine-in'
               : order?.type === 'PICKUP'
-              ? 'Para Llevar'
-              : 'Domicilio';
+              ? 'Takeout'
+              : 'Delivery';
 
-            toast.info(`🔔 ¡Nueva Comanda en Vivo! #${order?.orderNumber || order?.id?.slice(-4)}`, {
+            toast.info(`🔔 New Live Order! #${order?.orderNumber || order?.id?.slice(-4)}`, {
               description: `${tableText} · Total: $${Number(order?.total || 0).toLocaleString()}`,
               duration: 6000,
             });
@@ -84,8 +84,8 @@ export function useRealtimeEvents() {
             const parsed = e?.data ? JSON.parse(e.data) : null;
             const item = parsed?.data;
             if (item?.isLowStock && item?.name) {
-              toast.warning(`⚠️ Stock Bajo: ${item.name}`, {
-                description: `Quedan ${item.currentStock} unidades en inventario`,
+              toast.warning(`⚠️ Low Stock: ${item.name}`, {
+                description: `Only ${item.currentStock} units remaining in inventory`,
                 duration: 5000,
               });
             }

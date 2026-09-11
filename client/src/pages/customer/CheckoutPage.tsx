@@ -54,14 +54,14 @@ export default function CheckoutPage() {
   // Simulated card details for upfront approval
   const [cardNumber, setCardNumber] = useState('4532 •••• •••• 8892')
   const [cardHolder, setCardHolder] = useState(() =>
-    user?.customer ? `${user.customer.firstName} ${user.customer.lastName || ''}`.trim() : 'Cliente Origin'
+    user?.customer ? `${user.customer.firstName} ${user.customer.lastName || ''}`.trim() : 'Guest Customer'
   )
   const [cardExpiry, setCardExpiry] = useState('12/28')
   const [cardCvv, setCardCvv] = useState('884')
 
   // Address state for delivery
   const [customStreet, setCustomStreet] = useState('')
-  const [customCity, setCustomCity] = useState('Bogotá')
+  const [customCity, setCustomCity] = useState('Bengaluru')
 
   const [guestName, setGuestName] = useState(() =>
     user?.customer ? `${user.customer.firstName} ${user.customer.lastName || ''}`.trim() : ''
@@ -155,7 +155,7 @@ export default function CheckoutPage() {
 
     let finalNotes = notes.trim()
     if (guestName && !user) {
-      finalNotes = finalNotes ? `${finalNotes} | Cliente: ${guestName}` : `Cliente: ${guestName}`
+      finalNotes = finalNotes ? `${finalNotes} | Customer: ${guestName}` : `Customer: ${guestName}`
       if (guestPhone) finalNotes += ` (Tel: ${guestPhone})`
     }
 

@@ -30,7 +30,7 @@ export default function StaffDashboard() {
   const queryClient = useQueryClient()
 
   // Live polling for staff console every 5s
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['staff-dashboard'],
     queryFn: () => dashboardApi.getStaffDashboard(),
     refetchInterval: 5000
@@ -73,7 +73,30 @@ export default function StaffDashboard() {
     )
   }
 
-  if (!dashboard) return null
+  if (isError || !dashboard) {
+    return (
+      <div className="p-8 sm:p-12 text-center rounded-2xl bg-card border border-border space-y-4 my-6 shadow-xs max-w-lg mx-auto">
+        <div className="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
+          <RotateCcw className="w-6 h-6" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="font-serif font-bold text-lg text-foreground">
+            {t('staff.loadErrorTitle', { defaultValue: 'Unable to Load Console' })}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {error instanceof Error ? error.message : t('staff.loadErrorDesc', { defaultValue: 'Could not fetch active orders from the server.' })}
+          </p>
+        </div>
+        <Button
+          onClick={() => refetch()}
+          className="rounded-xl bg-[#7C4EEE] hover:bg-[#683BD6] text-white text-xs font-semibold px-4 py-2"
+        >
+          <RotateCcw className="w-3.5 h-3.5 mr-2" />
+          <span>{t('common.refresh', { defaultValue: 'Refresh' })}</span>
+        </Button>
+      </div>
+    )
+  }
 
   const getNextAction = (status: string) => {
     switch (status) {

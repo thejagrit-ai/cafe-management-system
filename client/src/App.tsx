@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
@@ -80,6 +80,14 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
 }
 
 function CustomerLayout({ children }: { children: React.ReactNode }) {
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    const tableParam = searchParams.get('table')
+    if (tableParam && /^\d+$/.test(tableParam.trim())) {
+      sessionStorage.setItem('cafe_active_table', tableParam.trim())
+    }
+  }, [searchParams])
   return (
     <SmoothScroll>
       {/* `theme-cafe` scopes the coffee-shop palette to the public site. Admin

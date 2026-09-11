@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import i18n from '@/i18n'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -12,19 +11,18 @@ export function cn(...inputs: ClassValue[]) {
  * Example: 18 -> "$18.00"
  * Example: 2500 -> "$2,500.00"
  */
-export function formatCurrency(amount: number | string, currency: string = 'USD'): string {
+export function formatCurrency(amount: number | string, currency: string = 'INR'): string {
   const num = typeof amount === 'number' ? amount : Number(amount) || 0
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: currency === 'COP' ? 'USD' : currency,
+    currency: 'INR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(num)
 }
 
 export function formatDate(date: string | Date): string {
-  const currentLang = i18n.language === 'en' ? 'en-US' : 'es-CO'
-  return new Intl.DateTimeFormat(currentLang, {
+  return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -34,8 +32,7 @@ export function formatDate(date: string | Date): string {
 }
 
 export function formatDateShort(date: string | Date): string {
-  const currentLang = i18n.language === 'en' ? 'en-US' : 'es-CO'
-  return new Intl.DateTimeFormat(currentLang, {
+  return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -43,8 +40,7 @@ export function formatDateShort(date: string | Date): string {
 }
 
 export function formatTime(date: string | Date): string {
-  const currentLang = i18n.language === 'en' ? 'en-US' : 'es-CO'
-  return new Intl.DateTimeFormat(currentLang, {
+  return new Intl.DateTimeFormat('en-US', {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(date))
@@ -68,48 +64,39 @@ export function getStatusColor(status: string): string {
 }
 
 export function getStatusLabel(status: string): string {
-  const isEn = i18n.language === 'en'
-  const labels: Record<string, { es: string; en: string }> = {
-    PENDING: { es: 'Pendiente', en: 'Pending' },
-    CONFIRMED: { es: 'Confirmado', en: 'Confirmed' },
-    PREPARING: { es: 'En preparación', en: 'Preparing' },
-    READY: { es: 'Listo', en: 'Ready' },
-    DELIVERED: { es: 'Entregado', en: 'Delivered' },
-    COMPLETED: { es: 'Completado', en: 'Completed' },
-    CANCELLED: { es: 'Cancelado', en: 'Cancelled' },
-    PAID: { es: 'Pagado', en: 'Paid' },
-    FAILED: { es: 'Fallido', en: 'Failed' },
-    REFUNDED: { es: 'Reembolsado', en: 'Refunded' },
-    PARTIAL: { es: 'Parcial', en: 'Partial' },
+  const labels: Record<string, string> = {
+    PENDING: 'Pending',
+    CONFIRMED: 'Confirmed',
+    PREPARING: 'Preparing',
+    READY: 'Ready',
+    DELIVERED: 'Delivered',
+    COMPLETED: 'Completed',
+    CANCELLED: 'Cancelled',
+    PAID: 'Paid',
+    FAILED: 'Failed',
+    REFUNDED: 'Refunded',
+    PARTIAL: 'Partial',
   }
-  const entry = labels[status]
-  if (!entry) return status
-  return isEn ? entry.en : entry.es
+  return labels[status] || status
 }
 
 export function getOrderTypeLabel(type: string): string {
-  const isEn = i18n.language === 'en'
-  const labels: Record<string, { es: string; en: string }> = {
-    DINE_IN: { es: 'Consumo en tienda / Mesa', en: 'Dine-in' },
-    PICKUP: { es: 'Recogida en barra', en: 'Pickup' },
-    DELIVERY: { es: 'Domicilio', en: 'Delivery' },
+  const labels: Record<string, string> = {
+    DINE_IN: 'Dine-in',
+    PICKUP: 'Pickup',
+    DELIVERY: 'Delivery',
   }
-  const entry = labels[type]
-  if (!entry) return type
-  return isEn ? entry.en : entry.es
+  return labels[type] || type
 }
 
 export function getPaymentMethodLabel(method: string): string {
-  const isEn = i18n.language === 'en'
-  const labels: Record<string, { es: string; en: string }> = {
-    CASH: { es: 'Efectivo', en: 'Cash' },
-    CARD: { es: 'Tarjeta Débito/Crédito', en: 'Card' },
-    UPI: { es: 'UPI', en: 'UPI' },
-    ONLINE: { es: 'Pago en línea', en: 'Online Payment' },
+  const labels: Record<string, string> = {
+    CASH: 'Cash',
+    CARD: 'Card',
+    UPI: 'UPI',
+    ONLINE: 'Online Payment',
   }
-  const entry = labels[method]
-  if (!entry) return method
-  return isEn ? entry.en : entry.es
+  return labels[method] || method
 }
 
 export function generateOrderNumber(): string {

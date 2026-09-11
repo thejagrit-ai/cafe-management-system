@@ -42,9 +42,9 @@ export default function OrderConfirmationPage() {
 
     try {
       setIsRegistering(true)
-      const guestEmail = order?.customer?.user?.email || `cliente_${Date.now()}@origen.cafe`
-      const firstName = order?.customer?.firstName || 'Cliente'
-      const lastName = order?.customer?.lastName || 'Mesa'
+      const guestEmail = order?.customer?.user?.email || `customer_${Date.now()}@origen.cafe`
+      const firstName = order?.customer?.firstName || 'Customer'
+      const lastName = order?.customer?.lastName || 'Table'
 
       await register({
         email: guestEmail,
@@ -111,7 +111,7 @@ export default function OrderConfirmationPage() {
         {order.tableNumber && (
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C4EEE]/10 border border-[#7C4EEE]/20 text-[#7C4EEE] font-bold text-sm">
             <UtensilsCrossed className="w-4 h-4" />
-            <span>Servicio a Mesa #{order.tableNumber}</span>
+            <span>Table Service #{order.tableNumber}</span>
           </div>
         )}
 

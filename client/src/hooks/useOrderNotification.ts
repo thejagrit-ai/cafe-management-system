@@ -61,18 +61,18 @@ export function useOrderNotification({ orders, enabled = true }: UseOrderNotific
       // Display clean toast for genuine real-time incoming orders
       brandNewPendingOrders.forEach((order: any) => {
         const tableText = order.tableNumber
-          ? `Mesa #${order.tableNumber}`
+          ? `Table #${order.tableNumber}`
           : order.type === 'DINE_IN'
-          ? 'En Mesa'
+          ? 'Dine-in'
           : order.type === 'PICKUP'
-          ? 'Para Llevar'
-          : 'Domicilio'
+          ? 'Takeout'
+          : 'Delivery'
 
         const customer =
           order.customerName ||
-          (order.customer ? `${order.customer.firstName} ${order.customer.lastName || ''}`.trim() : 'Cliente en barra')
+          (order.customer ? `${order.customer.firstName} ${order.customer.lastName || ''}`.trim() : 'Walk-in Customer')
 
-        toast.info(`🔔 ¡Nueva Comanda! #${order.orderNumber || order.id?.slice(-4)}`, {
+        toast.info(`🔔 New Order! #${order.orderNumber || order.id?.slice(-4)}`, {
           description: `${tableText} · ${customer}`,
           duration: 6000,
         })
@@ -84,9 +84,9 @@ export function useOrderNotification({ orders, enabled = true }: UseOrderNotific
     const next = soundService.toggleMute()
     setIsMuted(next)
     if (next) {
-      toast('Sonido desactivado', { icon: '🔇' })
+      toast('Sound muted', { icon: '🔇' })
     } else {
-      toast('Sonido activado', { icon: '🔔' })
+      toast('Sound unmuted', { icon: '🔔' })
       soundService.playOrderChime()
     }
   }, [])
@@ -97,7 +97,7 @@ export function useOrderNotification({ orders, enabled = true }: UseOrderNotific
       setIsMuted(false)
     }
     soundService.playOrderChime()
-    toast.success('Sonido de prueba reproducido', { icon: '🔔' })
+    toast.success('Test sound played', { icon: '🔔' })
   }, [isMuted])
 
   return {

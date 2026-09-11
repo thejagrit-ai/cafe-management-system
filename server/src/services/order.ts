@@ -163,7 +163,7 @@ export class OrderService {
 
         if (data.redeemPoints > customer.loyaltyPoints) {
           throw new BadRequestError(
-            `Saldo de puntos insuficiente. Tienes ${customer.loyaltyPoints} puntos disponibles.`
+            `Insufficient loyalty points balance. You have ${customer.loyaltyPoints} points available.`
           );
         }
 

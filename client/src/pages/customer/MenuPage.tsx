@@ -96,7 +96,7 @@ export default function MenuPage() {
           {activeTable && (
             <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-gold text-brand-ink text-xs font-bold shadow-md animate-fade-in">
               <UtensilsCrossed className="w-4 h-4" />
-              <span>Estás ordenando en Mesa #{activeTable}</span>
+              <span>You are ordering at Table #{activeTable}</span>
             </div>
           )}
         </div>

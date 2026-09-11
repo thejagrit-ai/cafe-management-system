@@ -138,7 +138,7 @@ export class LoyaltyService {
           orderId,
           points: totalEarned,
           type: 'EARNED',
-          description: `Puntos ganados por compra (${totalEarned} pts @ ${currentTier.name})`,
+          description: `Points earned for purchase (${totalEarned} pts @ ${currentTier.name})`,
         },
       }),
       prisma.order.update({
@@ -186,7 +186,7 @@ export class LoyaltyService {
 
     if (customer.loyaltyPoints < pointsToRedeem) {
       throw new BadRequestError(
-        `Saldo de puntos insuficiente. Tienes ${customer.loyaltyPoints} puntos disponibles.`
+        `Insufficient loyalty points balance. You have ${customer.loyaltyPoints} points available.`
       );
     }
 
@@ -204,7 +204,7 @@ export class LoyaltyService {
         orderId,
         points: -pointsToRedeem,
         type: 'REDEEMED',
-        description: `Redencion de puntos en comanda ($${discountAmount.toLocaleString()} COP)`,
+        description: `Point redemption on order ($${discountAmount.toLocaleString()})`,
       },
     });
 
@@ -231,7 +231,7 @@ export class LoyaltyService {
           customerId,
           points,
           type: points > 0 ? 'BONUS' : 'ADJUSTED',
-          description: reason || 'Ajuste administrativo de puntos',
+          description: reason || 'Administrative points adjustment',
         },
       }),
     ]);

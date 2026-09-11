@@ -204,8 +204,10 @@ export class DashboardService {
     const productMap: Record<string, { name: string; imageUrl: string | null; quantity: number; revenue: number }> = {};
     items.forEach(item => {
       const key = item.productId;
+      const name = item.product?.name || 'Unknown Product';
+      const imageUrl = item.product?.imageUrl || null;
       if (!productMap[key]) {
-        productMap[key] = { name: item.product.name, imageUrl: item.product.imageUrl, quantity: 0, revenue: 0 };
+        productMap[key] = { name, imageUrl, quantity: 0, revenue: 0 };
       }
       productMap[key].quantity += item.quantity;
       productMap[key].revenue += Number(item.totalPrice);

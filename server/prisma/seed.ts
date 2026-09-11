@@ -103,30 +103,30 @@ async function main() {
   const employee = await prisma.employee.create({
     data: {
       userId: staffUser.id,
-      firstName: 'Mateo',
-      lastName: 'Gómez',
-      phone: '+1 (555) 234-5678',
+      firstName: 'Rohan',
+      lastName: 'Gupta',
+      phone: '+91 98765 43210',
     },
   });
 
   const customer = await prisma.customer.create({
     data: {
       userId: customerUser.id,
-      firstName: 'Valentina',
-      lastName: 'Herrera',
-      phone: '+1 (555) 876-5432',
+      firstName: 'Kavya',
+      lastName: 'Nair',
+      phone: '+91 98765 12345',
     },
   });
 
   const address = await prisma.address.create({
     data: {
       customerId: customer.id,
-      label: 'Casa',
-      street: 'Calle 93 # 12-45, Apt 502',
-      city: 'Bogotá',
-      state: 'Cundinamarca',
-      postalCode: '110221',
-      country: 'Colombia',
+      label: 'Home',
+      street: 'MG Road, Koramangala',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      postalCode: '560034',
+      country: 'India',
       isDefault: true,
     },
   });
@@ -211,34 +211,34 @@ async function main() {
   const suppliers = await Promise.all([
     prisma.supplier.create({
       data: {
-        name: 'Andean Origin Coffee Roasters',
-        contactName: 'Carlos Restrepo',
-        email: 'carlos@andeanroasters.com',
-        phone: '+57 (310) 456-7890',
+        name: 'Araku Valley Coffee Roasters',
+        contactName: 'Rajesh Sharma',
+        email: 'rajesh@arakuroasters.com',
+        phone: '+91 98765 11111',
       },
     }),
     prisma.supplier.create({
       data: {
-        name: 'Valley Organics Dairy & Milk',
-        contactName: 'Sofia Mendez',
-        email: 'sofia@valleyorganics.com',
-        phone: '+57 (315) 678-1234',
+        name: 'Amul Organic Dairy',
+        contactName: 'Sunita Patel',
+        email: 'sunita@amuldairy.com',
+        phone: '+91 98765 22222',
       },
     }),
     prisma.supplier.create({
       data: {
-        name: 'Artisan Bakery Supplies',
-        contactName: 'Lucia Dupont',
-        email: 'lucia@artisanbakery.com',
-        phone: '+57 (300) 890-5678',
+        name: 'Bengaluru Artisan Bakery',
+        contactName: 'Anand Verma',
+        email: 'anand@bengalurubakery.com',
+        phone: '+91 98765 33333',
       },
     }),
     prisma.supplier.create({
       data: {
-        name: 'Tropical Farms Produce',
-        contactName: 'Esteban Morales',
-        email: 'esteban@tropicalfarms.com',
-        phone: '+57 (320) 123-9876',
+        name: 'Western Ghats Organic Produce',
+        contactName: 'Suresh Menon',
+        email: 'suresh@westernghatsproduce.com',
+        phone: '+91 98765 44444',
       },
     }),
   ]);
@@ -278,7 +278,7 @@ async function main() {
       data: {
         name: 'Artisan Latte Art',
         description: 'Double espresso poured over velvety steamed microfoam milk with silky finish.',
-        price: 4.75,
+        price: 240.00,
         categoryId: categories[0].id,
         imageUrl: '/assets/products/vanilla-latte.jpg',
         isFeatured: true,
@@ -289,7 +289,7 @@ async function main() {
       data: {
         name: 'Classic Velvet Cappuccino',
         description: 'Rich dark roast espresso layered with equal parts steamed milk and airy milk foam dusted with cocoa.',
-        price: 4.50,
+        price: 220.00,
         categoryId: categories[0].id,
         imageUrl: '/assets/products/classic-cappuccino.jpg',
         isFeatured: true,
@@ -300,7 +300,7 @@ async function main() {
       data: {
         name: 'Madagascar Vanilla Latte',
         description: 'Smooth double espresso infused with pure Madagascar vanilla extract and steamed whole milk.',
-        price: 5.25,
+        price: 260.00,
         categoryId: categories[0].id,
         imageUrl: '/assets/products/caramel-macchiato.jpg',
         isPopular: true,
@@ -310,7 +310,7 @@ async function main() {
       data: {
         name: 'Belgian Dark Mocha',
         description: 'Rich Belgian dark chocolate ganache blended with double espresso and topped with whipped cream.',
-        price: 5.75,
+        price: 280.00,
         categoryId: categories[0].id,
         imageUrl: '/assets/products/mocha-delight.jpg',
         isFeatured: true,
@@ -322,7 +322,7 @@ async function main() {
       data: {
         name: '24-Hour Signature Cold Brew',
         description: 'Single-origin Colombian beans slow steeped for 24 hours in mountain spring water over ice.',
-        price: 4.95,
+        price: 250.00,
         categoryId: categories[1].id,
         imageUrl: '/assets/products/cold-brew.jpg',
         isFeatured: true,
@@ -333,7 +333,7 @@ async function main() {
       data: {
         name: 'Iced Salted Caramel Macchiato',
         description: 'Layered iced milk, rich vanilla, double espresso float and house salted caramel drizzle.',
-        price: 5.50,
+        price: 270.00,
         categoryId: categories[1].id,
         imageUrl: '/assets/products/iced-caramel-latte.jpg',
         isFeatured: true,
@@ -344,7 +344,7 @@ async function main() {
       data: {
         name: 'Nitro Cold Brew Float',
         description: 'Nitrogen-infused velvety cold brew served cold on tap with sweet vanilla cream.',
-        price: 5.95,
+        price: 290.00,
         categoryId: categories[1].id,
         imageUrl: '/assets/products/maple-pecan-cold-brew.jpg',
       },
@@ -355,7 +355,7 @@ async function main() {
       data: {
         name: 'Single-Origin Double Espresso',
         description: 'Double ristretto shot extracted at 9 bars of pressure with thick hazelnut crema.',
-        price: 3.50,
+        price: 180.00,
         categoryId: categories[2].id,
         imageUrl: '/assets/products/double-espresso.jpg',
         isPopular: true,
@@ -365,7 +365,7 @@ async function main() {
       data: {
         name: 'Espresso Cortado',
         description: 'Equal parts bold espresso cut with warm steamed milk to reduce acidity.',
-        price: 3.95,
+        price: 190.00,
         categoryId: categories[2].id,
         imageUrl: '/assets/products/espresso-macchiato.jpg',
         isFeatured: true,
@@ -375,7 +375,7 @@ async function main() {
       data: {
         name: 'Espresso Romano',
         description: 'Intense espresso served with a twist of fresh candied lemon peel.',
-        price: 3.75,
+        price: 185.00,
         categoryId: categories[2].id,
         imageUrl: '/assets/products/single-espresso.jpg',
       },
@@ -386,7 +386,7 @@ async function main() {
       data: {
         name: 'Ceremonial Matcha Latte',
         description: 'First-harvest Japanese Uji matcha whisked with warm oat milk and organic agave.',
-        price: 5.50,
+        price: 270.00,
         categoryId: categories[3].id,
         imageUrl: '/assets/products/green-tea-latte.jpg',
         isFeatured: true,
@@ -397,7 +397,7 @@ async function main() {
       data: {
         name: 'Spiced Masala Chai Latte',
         description: 'Slow-simmered cinnamon, cardamom, ginger, and black tea with steamed milk.',
-        price: 5.00,
+        price: 230.00,
         categoryId: categories[3].id,
         imageUrl: '/assets/products/chai-tea-latte.jpg',
         isPopular: true,
@@ -407,7 +407,7 @@ async function main() {
       data: {
         name: 'Earl Grey Reserve Tea',
         description: 'Fragrant bergamot black tea infusion served with organic honey and lemon.',
-        price: 4.00,
+        price: 190.00,
         categoryId: categories[3].id,
         imageUrl: '/assets/products/english-breakfast-tea.jpg',
       },
@@ -418,7 +418,7 @@ async function main() {
       data: {
         name: 'French Butter Croissant',
         description: 'Freshly baked flaky all-butter croissant with honeycomb interior and golden crust.',
-        price: 3.95,
+        price: 180.00,
         categoryId: categories[4].id,
         imageUrl: '/assets/products/butter-croissant.jpg',
         isFeatured: true,
@@ -429,7 +429,7 @@ async function main() {
       data: {
         name: 'Blueberry Almond Muffin',
         description: 'Moist vanilla bakery muffin loaded with wild blueberries and sliced roasted almonds.',
-        price: 4.25,
+        price: 200.00,
         categoryId: categories[4].id,
         imageUrl: '/assets/products/blueberry-muffin.jpg',
         isPopular: true,
@@ -439,7 +439,7 @@ async function main() {
       data: {
         name: 'Double Chocolate Fudge Cookie',
         description: 'Warm, chewy soft-baked cookie with chunks of melted dark and milk chocolate.',
-        price: 3.25,
+        price: 150.00,
         categoryId: categories[4].id,
         imageUrl: '/assets/products/chocolate-chip-cookie.jpg',
       },
@@ -450,7 +450,7 @@ async function main() {
       data: {
         name: 'Artisan Avocado Sourdough Toast',
         description: 'Crushed ripe avocado, cherry tomatoes, micro-greens, chili flakes on toasted sourdough.',
-        price: 7.95,
+        price: 380.00,
         categoryId: categories[5].id,
         imageUrl: '/assets/products/avocado-toast.jpg',
         isFeatured: true,
@@ -461,7 +461,7 @@ async function main() {
       data: {
         name: 'Smoked Turkey & Bacon Panini',
         description: 'Thinly sliced smoked turkey, crispy bacon, aged provolone, pesto on pressed ciabatta.',
-        price: 9.50,
+        price: 450.00,
         categoryId: categories[5].id,
         imageUrl: '/assets/products/turkey-club-sandwich.jpg',
         isPopular: true,
@@ -471,7 +471,7 @@ async function main() {
       data: {
         name: 'Caprese Pesto Baguette',
         description: 'Fresh buffalo mozzarella, heirloom tomatoes, fresh basil and balsamic reduction glaze.',
-        price: 8.50,
+        price: 420.00,
         categoryId: categories[5].id,
         imageUrl: '/assets/products/turkey-club-sandwich.jpg',
       },
@@ -482,7 +482,7 @@ async function main() {
       data: {
         name: 'Acai Berry Power Smoothie',
         description: 'Organic Amazon acai, fresh strawberries, wild blueberries, banana and almond milk.',
-        price: 6.50,
+        price: 320.00,
         categoryId: categories[6].id,
         imageUrl: '/assets/products/strawberry-banana-smoothie.jpg',
         isFeatured: true,
@@ -493,7 +493,7 @@ async function main() {
       data: {
         name: 'Tropical Mango Passion Bowl',
         description: 'Golden mango, passionfruit puree, coconut milk, topped with chia seeds and granola.',
-        price: 6.75,
+        price: 340.00,
         categoryId: categories[6].id,
         imageUrl: '/assets/products/mango-tropical-smoothie.jpg',
       },
@@ -504,7 +504,7 @@ async function main() {
       data: {
         name: 'Seasonal Spiced Pumpkin Latte',
         description: 'Real pumpkin puree, autumn spices, espresso, warm milk and cinnamon stick.',
-        price: 6.25,
+        price: 300.00,
         categoryId: categories[7].id,
         imageUrl: '/assets/products/pumpkin-spice-latte.jpg',
         isFeatured: true,
@@ -514,7 +514,7 @@ async function main() {
       data: {
         name: 'Geisha Reserve V60 Pour-Over',
         description: 'Single-estate Panama Geisha coffee hand-brewed with floral jasmine notes and bergamot.',
-        price: 7.50,
+        price: 360.00,
         categoryId: categories[7].id,
         imageUrl: '/assets/products/americano.jpg',
         isFeatured: true,
@@ -569,9 +569,9 @@ async function main() {
   // -------------------------------------------------------------
   await prisma.businessSettings.create({
     data: {
-      taxRate: 8,
-      currency: 'USD',
-      deliveryFee: 4.50,
+      taxRate: 5,
+      currency: 'INR',
+      deliveryFee: 50.00,
       allowOutOfStockOrders: false,
       openingTime: '07:00',
       closingTime: '21:00',
@@ -584,12 +584,12 @@ async function main() {
   // 7. Extra Customers & Trading History (Past 30 Days)
   // -------------------------------------------------------------
   const extraCustomerSpecs = [
-    { first: 'Sofia', last: 'Ramirez', phone: '+1 (555) 301-4455' },
-    { first: 'Julian', last: 'Navarro', phone: '+1 (555) 302-8877' },
-    { first: 'Camila', last: 'Torres', phone: '+1 (555) 303-9911' },
-    { first: 'Santiago', last: 'Mora', phone: '+1 (555) 304-1234' },
-    { first: 'Isabella', last: 'Castillo', phone: '+1 (555) 305-6789' },
-    { first: 'Mateo', last: 'Silva', phone: '+1 (555) 306-4321' },
+    { first: 'Aarav', last: 'Sharma', phone: '+91 98765 66001' },
+    { first: 'Priya', last: 'Patel', phone: '+91 98765 66002' },
+    { first: 'Vikram', last: 'Singh', phone: '+91 98765 66003' },
+    { first: 'Kavya', last: 'Iyer', phone: '+91 98765 66004' },
+    { first: 'Neha', last: 'Reddy', phone: '+91 98765 66005' },
+    { first: 'Arjun', last: 'Verma', phone: '+91 98765 66006' },
   ];
 
   const sharedCustomerHash = await hashPassword('customer123');
@@ -626,8 +626,8 @@ async function main() {
   const between = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
 
   const DAYS_OF_HISTORY = 30;
-  const taxRate = 8;
-  const deliveryFeeAmount = 4.50;
+  const taxRate = 5;
+  const deliveryFeeAmount = 50.00;
   const round2 = (value: number) => Math.round(value * 100) / 100;
 
   const orderTypes = [OrderType.DINE_IN, OrderType.PICKUP, OrderType.DELIVERY];
