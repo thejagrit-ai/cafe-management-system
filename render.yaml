@@ -21,8 +21,9 @@ services:
       npm install --include=dev &&
       npm run build:client &&
       npm run build:server &&
+      test -f client/dist/index.html &&
       cd server && npx prisma db push && npm run db:seed && npm run db:repair-images
-    startCommand: npm start
+    startCommand: node server/dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
