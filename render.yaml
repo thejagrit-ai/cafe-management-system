@@ -1,17 +1,22 @@
-databases:
-  - name: cafe-database
-    databaseName: cafedb
-    user: cafeuser
-    plan: free
+# Single-service deploy: one Render web service builds the React client and
+# runs the Express API, serving both from the same URL.
+#
+# The Postgres database already exists in this Render workspace, so it is NOT
+# declared here — the free plan allows only one free Postgres per workspace and
+# a blueprint that tried to create a second would fail the apply. DATABASE_URL
+# is marked `sync: false`, so Render prompts for it when the blueprint is
+# applied: paste the database's **Internal Database URL** from its dashboard
+# page (internal, not external — it is free, faster, and never leaves Render's
+# network).
 
 services:
-  # Single web service: the Express server builds and serves the React client.
-  # The client bundle is compiled first, then the API, so the server can serve
-  # the SPA from ../client/dist at runtime.
   - type: web
     name: cafe-server
     runtime: node
     plan: free
+    # Must match the database's region, or the Internal Database URL will not
+    # resolve. Check it on the database page in the Render dashboard.
+    region: oregon
     # Build from the repo root so both client/ and server/ are accessible.
     # 1. Install root-level workspace deps (pulls in client + server).
     # 2. Build the React client (outputs to client/dist).
@@ -24,6 +29,7 @@ services:
       test -f client/dist/index.html &&
       cd server && npx prisma db push && npm run db:seed && npm run db:repair-images
     startCommand: node server/dist/index.js
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -31,10 +37,10 @@ services:
         value: 10000
       - key: JWT_SECRET
         generateValue: true
+      # Prompted on blueprint apply — paste the Internal Database URL of the
+      # Postgres instance you already have.
       - key: DATABASE_URL
-        fromDatabase:
-          name: cafe-database
-          property: connectionString
+        sync: false
       # Single-service deploy: the site and the API share this service's own
       # origin. Hard-coding a separate frontend host here is what broke the
       # last deploy — the URL it named no longer existed.
