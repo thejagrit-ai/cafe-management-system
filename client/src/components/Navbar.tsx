@@ -59,28 +59,23 @@ export function Navbar() {
   return (
     <>
       <header
-        className={cn(
-          "sticky top-0 z-40 w-full transition-all duration-200",
-          isHome
-            ? "bg-brand-ink/95 border-b border-white/10 text-white backdrop-blur-md"
-            : "border-b border-border/70 bg-background/90 backdrop-blur-md"
-        )}
+        className="coffee-nav sticky top-0 z-40 w-full transition-all duration-200"
       >
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex h-16 sm:h-18 items-center justify-between gap-3">
+          <div className="coffee-nav-row flex h-16 sm:h-18 items-center justify-between gap-3">
             {/* Logo & Brand Name */}
             <Link
               to="/"
               className="flex items-center gap-2.5 group transition-transform active:scale-[0.98] shrink-0"
               onClick={() => setMobileDrawerOpen(false)}
             >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-ink border border-brand-gold/30 text-brand-gold flex items-center justify-center transition-colors duration-300 group-hover:bg-brand-gold group-hover:text-brand-ink shadow-xs shrink-0">
+              <div className="coffee-logo-mark w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-ink border border-brand-gold/30 text-brand-gold flex items-center justify-center transition-colors duration-300 group-hover:bg-brand-gold group-hover:text-brand-ink shadow-xs shrink-0">
                 <Coffee className="h-5 w-5 stroke-[1.75]" />
               </div>
               <div className="flex flex-col">
                 <span
                   className={cn(
-                    "font-serif text-lg sm:text-xl font-bold group-hover:text-brand-gold transition-colors leading-tight whitespace-nowrap",
+                    "coffee-brand font-serif text-lg sm:text-xl font-bold group-hover:text-brand-gold transition-colors leading-tight whitespace-nowrap",
                     isHome ? "text-white" : "text-foreground"
                   )}
                 >
@@ -88,17 +83,17 @@ export function Navbar() {
                 </span>
                 <span
                   className={cn(
-                    "text-[9px] sm:text-[10px] tracking-[0.2em] uppercase font-semibold leading-none mt-0.5 whitespace-nowrap",
+                    "coffee-brand-subtitle text-[9px] sm:text-[10px] tracking-[0.2em] uppercase font-semibold leading-none mt-0.5 whitespace-nowrap",
                     isHome ? "text-white/60" : "text-muted-foreground"
                   )}
                 >
-                  Cafe · Roastery
+                  Cafe Â· Roastery
                 </span>
               </div>
             </Link>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden md:flex items-center gap-7">
+            <nav className="hidden lg:flex items-center gap-7">
               {publicLinks.map((link) => {
                 if (link.requiresAuth && (!isAuthenticated || user?.role !== 'CUSTOMER')) return null
                 const isActive = location.pathname === link.href
@@ -120,10 +115,12 @@ export function Navbar() {
                   </Link>
                 )
               })}
+              <Link to="/#our-story">Our story</Link>
+              <Link to="/#opening-hours">Visit us</Link>
             </nav>
 
             {/* Desktop Actions */}
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3">
 
               {isAuthenticated && user?.role === 'CUSTOMER' && (
                 <LoyaltyModal />
@@ -190,7 +187,7 @@ export function Navbar() {
                               onClick={() => setUserMenuOpen(false)}
                             >
                               <span>{t('navigation.myPointsBenefits')}</span>
-                              <span>✨</span>
+                              <span>âœ¨</span>
                             </button>
                           </LoyaltyModal>
                         </div>
@@ -249,7 +246,7 @@ export function Navbar() {
             </div>
 
             {/* Mobile Top Header Controls */}
-            <div className="flex md:hidden items-center gap-2 shrink-0">
+            <div className="flex lg:hidden items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setCartDrawerOpen(true)}
@@ -278,7 +275,7 @@ export function Navbar() {
 
         {/* Full-Height Mobile Slide-Out Drawer (True Sidebar from Right) */}
         {mobileDrawerOpen && typeof document !== 'undefined' && createPortal(
-          <div className="fixed inset-0 z-[99999] md:hidden flex justify-end">
+          <div className="fixed inset-0 z-[99999] lg:hidden flex justify-end">
             {/* Backdrop overlay */}
             <div
               className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 animate-fade-in"
@@ -386,7 +383,7 @@ export function Navbar() {
                 {/* Main Navigation Links */}
                 <div className="space-y-1.5 font-sans">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
-                    Navegación
+                    NavegaciÃ³n
                   </span>
                   
                   <Link
@@ -414,7 +411,7 @@ export function Navbar() {
                   >
                     <div className="flex items-center gap-3">
                       <Coffee className="w-4 h-4" />
-                      <span>{t('navigation.menu')} (Carta Completa)</span>
+                      <span>{t('navigation.menu')} (Full menu)</span>
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
                   </Link>

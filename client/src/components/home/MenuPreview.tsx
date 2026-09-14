@@ -1,57 +1,39 @@
-import { Link } from 'react-router-dom'
+﻿import { Link } from 'react-router-dom'
+import { ArrowUpRight } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
 import { productsApi } from '@/api/products'
 import { ProductCard } from '@/components/ProductCard'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useReveal } from '@/hooks/useReveal'
-import Separator from './Separator'
+
+const collections = [
+  { name: 'The classics', note: 'Rich espresso. Silky milk. Pure comfort.', image: 'classic-cappuccino', label: 'WARM & FAMILIAR', alt: 'Cappuccino with latte art' },
+  { name: 'Something chilled', note: 'A refreshing change of pace.', image: 'cold-brew', label: 'COOL & UNHURRIED', alt: 'Cold coffee served over ice' },
+  { name: 'A sweeter moment', note: 'Because coffee loves a little company.', image: 'butter-croissant', label: 'THE PERFECT PAIRING', alt: 'Golden butter croissant' },
+]
 
 export default function MenuPreview() {
-  const { t } = useTranslation()
-  const headerReveal = useReveal<HTMLDivElement>()
-  const gridReveal = useReveal<HTMLDivElement>()
-
-  const { data, isLoading } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ['home-featured'],
-    queryFn: () => productsApi.getFeatured(6),
+    queryFn: () => productsApi.getFeatured(3),
   })
-
   const products = data?.data ?? []
 
   return (
-    <section className="bg-secondary/40 py-20 xl:py-32 overflow-hidden">
-      <div className="container mx-auto px-4 sm:px-6">
-        <div ref={headerReveal} className="reveal flex flex-col items-center text-center">
-          <span className="eyebrow">{t('landing.menuEyebrow')}</span>
-          <h2 className="h2 mt-3">{t('landing.menuTitle')}</h2>
-          <Separator className="mt-6" />
-          <p className="lead mt-6 max-w-[560px] text-muted-foreground">
-            {t('landing.menuSubtitle')}
-          </p>
-        </div>
-
-        <div
-          ref={gridReveal}
-          className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 reveal"
-        >
-          {isLoading
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-[380px] rounded-2xl" />
-              ))
-            : products.map((product) => <ProductCard key={product.id} product={product} />)}
-        </div>
-
-        {!isLoading && products.length === 0 && (
-          <p className="mt-10 text-center text-muted-foreground">{t('menu.noProductsFound')}</p>
-        )}
-
-        <div className="mt-14 flex justify-center">
-          <Link to="/menu" className="btn-cafe-outline">
-            {t('landing.menuCta')}
-          </Link>
-        </div>
+    <section className="coffee-section coffee-menu" id="coffee-menu" aria-labelledby="menu-title">
+      <div className="coffee-section-heading">
+        <div><span className="coffee-kicker">FIND YOUR DAILY RITUAL</span><h2 id="menu-title">A cup for <em>every mood.</em></h2></div>
+        <Link to="/menu" className="coffee-text-link">View full menu <ArrowUpRight size={17} /></Link>
       </div>
+      <div className="coffee-collection-grid">
+        {collections.map((collection, index) => (
+          <Link to="/menu" className="coffee-collection" key={collection.name}>
+            <div className="coffee-collection-image"><img src={`/assets/products/${collection.image}.jpg`} alt={collection.alt} loading="lazy" width={600} height={600} /><span>0{index + 1} / {collection.label}</span><div className="coffee-collection-arrow"><ArrowUpRight size={22} /></div></div>
+            <h3>{collection.name}</h3><p>{collection.note}</p>
+          </Link>
+        ))}
+      </div>
+      {products.length > 0 && <div className="coffee-featured"><div className="coffee-section-heading"><h3>On the menu today</h3><span className="coffee-kicker">PICK YOUR FAVORITE</span></div><div className="coffee-collection-grid">{products.map(product => <ProductCard key={product.id} product={product} />)}</div></div>}
+      {isPending && <p className="coffee-menu-status" role="status">Finding today's featured coffees…</p>}
+      {isError && <p className="coffee-menu-status" role="status">Today's selections are taking a little longer to load. <Link to="/menu">Visit the menu to try again.</Link></p>}
     </section>
   )
 }

@@ -8,6 +8,7 @@ import { productsApi } from '@/api/products'
 import { recipesApi } from '@/api/recipes'
 import { useCart } from '@/contexts/CartContext'
 import { SmartImage } from '@/components/SmartImage'
+import { getProductImage } from '@/utils/productImage'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency, cn } from '@/utils/lib'
 
@@ -117,7 +118,7 @@ export default function ProductDetailPage() {
         {/* Image */}
         <div className="relative aspect-square overflow-hidden rounded-sm bg-secondary">
           <SmartImage
-            src={product.imageUrl}
+            src={getProductImage(product)}
             alt={product.name}
             className="h-full w-full object-cover"
             fallback={

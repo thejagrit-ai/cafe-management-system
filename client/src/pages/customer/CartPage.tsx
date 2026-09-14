@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Coffee, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react'
 import { useCart } from '@/contexts/CartContext'
 import { SmartImage } from '@/components/SmartImage'
+import { getProductImage } from '@/utils/productImage'
 import { formatCurrency } from '@/utils/lib'
 import Separator from '@/components/home/Separator'
 
@@ -52,7 +53,7 @@ export default function CartPage() {
                   className="h-24 w-24 shrink-0 overflow-hidden rounded-sm bg-secondary"
                 >
                   <SmartImage
-                    src={entry.product.imageUrl}
+                  src={getProductImage(entry.product)}
                     alt={entry.product.name}
                     loading="lazy"
                     className="h-full w-full object-cover"

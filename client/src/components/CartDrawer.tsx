@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react'
 import { useCart } from '@/contexts/CartContext'
 import { SmartImage } from '@/components/SmartImage'
+import { getProductImage } from '@/utils/productImage'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatCurrency, cn } from '@/utils/lib'
 
@@ -88,7 +89,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <div key={entry.product.id} className="flex gap-4 py-5">
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-sm bg-secondary">
                     <SmartImage
-                      src={entry.product.imageUrl}
+                      src={getProductImage(entry.product)}
                       alt={entry.product.name}
                       loading="lazy"
                       className="h-full w-full object-cover"

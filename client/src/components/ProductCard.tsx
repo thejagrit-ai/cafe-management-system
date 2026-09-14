@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useCart } from '@/contexts/CartContext'
 import { SmartImage } from '@/components/SmartImage'
 import { formatCurrency, cn } from '@/utils/lib'
+import { getProductImage } from '@/utils/productImage'
 import type { Product } from '@/types'
 
 /** Menu card in the coffee-shop style: image, name, dotted leader, price. */
@@ -14,6 +15,7 @@ export function ProductCard({ product, className }: { product: Product; classNam
 
   const isUnavailable = product.availability === 'UNAVAILABLE'
   const isLimited = product.availability === 'LIMITED'
+  const imageSrc = getProductImage(product)
 
   const handleAdd = () => {
     addItem(product, 1)
@@ -34,7 +36,7 @@ export function ProductCard({ product, className }: { product: Product; classNam
         tabIndex={isUnavailable ? -1 : undefined}
       >
         <SmartImage
-          src={product.imageUrl}
+          src={imageSrc}
           alt={product.name}
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
