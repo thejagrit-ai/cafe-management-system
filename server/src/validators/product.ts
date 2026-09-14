@@ -48,3 +48,13 @@ export const productQuerySchema = z.object({
     isPopular: booleanQueryParam,
   }),
 });
+
+export const updateProductAvailabilitySchema = z.object({
+  body: z.object({
+    availability: z.enum(['AVAILABLE', 'UNAVAILABLE', 'LIMITED']),
+    availabilityLocked: z.boolean().optional(),
+  }),
+  params: z.object({
+    id: z.string().cuid(),
+  }),
+});

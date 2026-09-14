@@ -10,6 +10,7 @@ export interface CreateOrderData {
   addressId?: string;
   /** Loyalty points to spend on this order. The server caps and validates. */
   redeemPoints?: number;
+  couponCode?: string;
   paymentMethod?: 'CASH' | 'CARD' | 'UPI' | 'ONLINE';
   paymentDetails?: {
     cardNumber?: string;

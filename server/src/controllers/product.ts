@@ -55,6 +55,15 @@ export class ProductController {
     }
   }
 
+  async updateAvailability(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const product = await productService.updateAvailability(req.params.id, req.body, req);
+      successResponse(res, product, 'Product availability updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async delete(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       await productService.delete(req.params.id, req);

@@ -15,7 +15,7 @@ import {
   FileSpreadsheet,
   Loader2
 } from 'lucide-react'
-import { useDownloadCSV } from '@/hooks/useDownloadCSV'
+import { useDownloadWorkbook } from '@/hooks/useDownloadWorkbook'
 import { toast } from 'sonner'
 import {
   BarChart,
@@ -40,7 +40,7 @@ export default function AdminReports() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [activeTab, setActiveTab] = useState('sales')
-  const { downloadCSV, isExporting } = useDownloadCSV()
+  const { downloadWorkbook, isExporting } = useDownloadWorkbook()
 
   const salesParams = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined, groupBy: 'day' }
   const inventoryParams = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined }
@@ -105,7 +105,7 @@ export default function AdminReports() {
           r.paymentMethod,
           r.paymentStatus,
         ])
-        downloadCSV({ filename: `${t('adminReports.csvSalesFile')}_${timestamp}`, headers, rows })
+        downloadWorkbook({ filename: `${t('adminReports.csvSalesFile')}_${timestamp}`, sheetName: 'Sales', headers, rows })
       } else if (type === 'inventory') {
         const headers = [
           'SKU',
@@ -131,7 +131,7 @@ export default function AdminReports() {
           r.status,
           r.supplier,
         ])
-        downloadCSV({ filename: `${t('adminReports.csvInventoryFile')}_${timestamp}`, headers, rows })
+        downloadWorkbook({ filename: `${t('adminReports.csvInventoryFile')}_${timestamp}`, sheetName: 'Inventory', headers, rows })
       } else if (type === 'products') {
         const headers = [
           t('adminReports.csvProduct'),
@@ -149,7 +149,7 @@ export default function AdminReports() {
           r.orderCount,
           r.totalRevenue,
         ])
-        downloadCSV({ filename: `${t('adminReports.csvProductsFile')}_${timestamp}`, headers, rows })
+        downloadWorkbook({ filename: `${t('adminReports.csvProductsFile')}_${timestamp}`, sheetName: 'Products', headers, rows })
       }
     } catch (err: any) {
       toast.error(err?.message || t('adminReports.exportError'))
@@ -198,7 +198,7 @@ export default function AdminReports() {
             ) : (
               <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             )}
-            <span>{t('adminReports.exportCsv')}</span>
+            <span>{t('adminReports.exportCsv').replace('CSV', 'Excel')}</span>
           </Button>
         </div>
       </div>

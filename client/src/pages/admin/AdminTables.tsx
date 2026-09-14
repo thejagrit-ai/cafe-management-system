@@ -1,5 +1,7 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
+import { useQuery } from '@tanstack/react-query'
+import { dashboardApi, type AdminDashboard } from '@/api/dashboard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -128,6 +130,18 @@ export default function AdminTables() {
   )
 
   const reachability = useMemo(() => classifyReachability(baseUrl), [baseUrl])
+  const { data: dashboardData } = useQuery({
+    queryKey: ['admin-dashboard', { days: 7, source: 'tables' }],
+    queryFn: () => dashboardApi.getAdminDashboard({ days: 7 }),
+    refetchInterval: 15000,
+  })
+  const tableStats = useMemo(() => {
+    const map = new Map<number, NonNullable<AdminDashboard['tablePerformance']>[number]>()
+    dashboardData?.data?.tablePerformance?.forEach((table) => {
+      if (table.tableNumber) map.set(table.tableNumber, table)
+    })
+    return map
+  }, [dashboardData])
 
   const saveTables = (newTables: TableItem[]) => {
     setTables(newTables)
@@ -391,6 +405,11 @@ export default function AdminTables() {
                         {table.zone && (
                           <span className="text-[10px] text-muted-foreground">
                             {table.zone}
+                          </span>
+                        )}
+                        {tableStats.get(table.id)?.occupied && (
+                          <span className="block text-[10px] font-semibold text-amber-600">
+                            {tableStats.get(table.id)?.activeOrders} active orders
                           </span>
                         )}
                       </div>

@@ -25,7 +25,11 @@ import {
   RotateCcw,
   Package,
   ChevronRight,
-  Receipt
+  Receipt,
+  TrendingUp,
+  Utensils,
+  Users,
+  Percent
 } from 'lucide-react'
 import {
   AreaChart,
@@ -159,6 +163,13 @@ export default function AdminDashboard() {
       color: dashboard.stats.lowStockItems > 0
         ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/40'
         : 'text-zinc-600 bg-zinc-100 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-700',
+    },
+    {
+      label: 'Refund Rate',
+      value: `${dashboard.stats.refundRate ?? 0}%`,
+      subtext: `${dashboard.stats.cancelledOrders ?? 0} cancelled today`,
+      icon: Percent,
+      color: 'text-rose-600 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/40',
     },
   ]
 
@@ -486,6 +497,113 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      {/* Profit, Forecasting & Growth */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <h3 className="font-serif font-bold text-base text-foreground">Profit Health</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-secondary/30 border border-border/40">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">Revenue</span>
+              <p className="font-bold text-sm text-foreground mt-1">{formatCurrency(dashboard.profitSnapshot?.revenue ?? 0)}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-secondary/30 border border-border/40">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">Cost</span>
+              <p className="font-bold text-sm text-foreground mt-1">{formatCurrency(dashboard.profitSnapshot?.ingredientCost ?? 0)}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300">Margin</span>
+              <p className="font-bold text-sm text-foreground mt-1">{dashboard.profitSnapshot?.grossMarginPercent ?? 0}%</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {(dashboard.profitSnapshot?.bestMarginProducts || []).slice(0, 4).map((product) => (
+              <div key={product.productId} className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-foreground truncate">{product.name}</span>
+                <span className="font-mono text-emerald-600">{product.marginPercent}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <h3 className="font-serif font-bold text-base text-foreground">Stock Forecast</h3>
+          </div>
+          <div className="space-y-2.5">
+            {(dashboard.inventoryForecast || []).slice(0, 5).map((item) => (
+              <div key={item.id} className="p-3 rounded-xl bg-secondary/25 border border-border/50 text-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold text-foreground truncate">{item.name}</span>
+                  <Badge className={item.daysUntilLow !== null && item.daysUntilLow <= 3 ? 'bg-rose-500/10 text-rose-700 border-rose-500/20' : 'bg-amber-500/10 text-amber-700 border-amber-500/20'}>
+                    {item.daysUntilLow === null ? 'No usage' : `${item.daysUntilLow}d left`}
+                  </Badge>
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  Use {item.dailyUse} {item.unit}/day · Order {item.suggestedOrderQty} {item.unit}
+                </div>
+              </div>
+            ))}
+            {(dashboard.inventoryForecast || []).length === 0 && (
+              <p className="py-6 text-center text-xs text-muted-foreground">No forecast risk in this period.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-[#7C4EEE]" />
+            <h3 className="font-serif font-bold text-base text-foreground">Customer Growth</h3>
+          </div>
+          <div className="p-3 rounded-xl bg-[#7C4EEE]/10 border border-[#7C4EEE]/20 text-xs">
+            <span className="text-[10px] uppercase font-bold text-[#7C4EEE]">New Customers</span>
+            <p className="text-2xl font-bold text-foreground mt-1">{dashboard.customerInsights?.newCustomers ?? 0}</p>
+          </div>
+          <div className="space-y-2">
+            {(dashboard.customerInsights?.topCustomers || []).map((customer) => (
+              <div key={customer.customerId || customer.name} className="flex items-center justify-between gap-3 text-xs">
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground truncate">{customer.name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{customer.orders} orders</p>
+                </div>
+                <span className="font-bold text-foreground">{formatCurrency(customer.totalSpent)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Table Performance */}
+      {(dashboard.tablePerformance || []).length > 0 && (
+        <div className="p-5 sm:p-6 rounded-2xl border border-border/80 bg-card space-y-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Utensils className="w-4 h-4 text-[#7C4EEE]" />
+              <h3 className="font-serif font-bold text-base text-foreground">Table Performance</h3>
+            </div>
+            <Link to="/admin/tables" className="text-xs font-semibold text-[#7C4EEE] hover:underline">Manage QR tables</Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {(dashboard.tablePerformance || []).slice(0, 8).map((table) => (
+              <div key={table.tableNumber} className="p-3 rounded-xl bg-secondary/25 border border-border/50 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground">Table {table.tableNumber}</span>
+                  <Badge className="bg-[#7C4EEE]/10 text-[#7C4EEE] border-[#7C4EEE]/20">{table.orders} orders</Badge>
+                </div>
+                <p className="mt-2 font-bold text-base text-foreground">{formatCurrency(table.revenue)}</p>
+                <p className="text-[11px] text-muted-foreground">Avg {formatCurrency(table.averageTicket)} · {table.averageTableMinutes ?? '-'}m</p>
+                {table.occupied && (
+                  <p className="mt-1 text-[10px] font-semibold text-amber-600">{table.activeOrders} active</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Operational Widgets: Low Stock Alerts & Recent Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

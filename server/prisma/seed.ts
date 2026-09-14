@@ -278,7 +278,7 @@ async function main() {
       data: {
         name: 'Artisan Latte Art',
         description: 'Double espresso poured over velvety steamed microfoam milk with silky finish.',
-        price: 240.00,
+        price: 180.00,
         categoryId: categories[0].id,
         imageUrl: '/assets/products/vanilla-latte.jpg',
         isFeatured: true,
@@ -289,7 +289,7 @@ async function main() {
       data: {
         name: 'Classic Velvet Cappuccino',
         description: 'Rich dark roast espresso layered with equal parts steamed milk and airy milk foam dusted with cocoa.',
-        price: 220.00,
+        price: 160.00,
         categoryId: categories[0].id,
         imageUrl: '/assets/products/classic-cappuccino.jpg',
         isFeatured: true,
@@ -300,7 +300,7 @@ async function main() {
       data: {
         name: 'Madagascar Vanilla Latte',
         description: 'Smooth double espresso infused with pure Madagascar vanilla extract and steamed whole milk.',
-        price: 260.00,
+        price: 190.00,
         categoryId: categories[0].id,
         imageUrl: '/assets/products/caramel-macchiato.jpg',
         isPopular: true,
@@ -310,7 +310,7 @@ async function main() {
       data: {
         name: 'Belgian Dark Mocha',
         description: 'Rich Belgian dark chocolate ganache blended with double espresso and topped with whipped cream.',
-        price: 280.00,
+        price: 210.00,
         categoryId: categories[0].id,
         imageUrl: '/assets/products/mocha-delight.jpg',
         isFeatured: true,
@@ -322,7 +322,7 @@ async function main() {
       data: {
         name: '24-Hour Signature Cold Brew',
         description: 'Single-origin Colombian beans slow steeped for 24 hours in mountain spring water over ice.',
-        price: 250.00,
+        price: 190.00,
         categoryId: categories[1].id,
         imageUrl: '/assets/products/cold-brew.jpg',
         isFeatured: true,
@@ -333,7 +333,7 @@ async function main() {
       data: {
         name: 'Iced Salted Caramel Macchiato',
         description: 'Layered iced milk, rich vanilla, double espresso float and house salted caramel drizzle.',
-        price: 270.00,
+        price: 220.00,
         categoryId: categories[1].id,
         imageUrl: '/assets/products/iced-caramel-latte.jpg',
         isFeatured: true,
@@ -344,7 +344,7 @@ async function main() {
       data: {
         name: 'Nitro Cold Brew Float',
         description: 'Nitrogen-infused velvety cold brew served cold on tap with sweet vanilla cream.',
-        price: 290.00,
+        price: 230.00,
         categoryId: categories[1].id,
         imageUrl: '/assets/products/maple-pecan-cold-brew.jpg',
       },
@@ -355,7 +355,7 @@ async function main() {
       data: {
         name: 'Single-Origin Double Espresso',
         description: 'Double ristretto shot extracted at 9 bars of pressure with thick hazelnut crema.',
-        price: 180.00,
+        price: 120.00,
         categoryId: categories[2].id,
         imageUrl: '/assets/products/double-espresso.jpg',
         isPopular: true,
@@ -365,7 +365,7 @@ async function main() {
       data: {
         name: 'Espresso Cortado',
         description: 'Equal parts bold espresso cut with warm steamed milk to reduce acidity.',
-        price: 190.00,
+        price: 140.00,
         categoryId: categories[2].id,
         imageUrl: '/assets/products/espresso-macchiato.jpg',
         isFeatured: true,
@@ -375,7 +375,7 @@ async function main() {
       data: {
         name: 'Espresso Romano',
         description: 'Intense espresso served with a twist of fresh candied lemon peel.',
-        price: 185.00,
+        price: 130.00,
         categoryId: categories[2].id,
         imageUrl: '/assets/products/single-espresso.jpg',
       },
@@ -386,7 +386,7 @@ async function main() {
       data: {
         name: 'Ceremonial Matcha Latte',
         description: 'First-harvest Japanese Uji matcha whisked with warm oat milk and organic agave.',
-        price: 270.00,
+        price: 220.00,
         categoryId: categories[3].id,
         imageUrl: '/assets/products/green-tea-latte.jpg',
         isFeatured: true,
@@ -397,7 +397,7 @@ async function main() {
       data: {
         name: 'Spiced Masala Chai Latte',
         description: 'Slow-simmered cinnamon, cardamom, ginger, and black tea with steamed milk.',
-        price: 230.00,
+        price: 120.00,
         categoryId: categories[3].id,
         imageUrl: '/assets/products/chai-tea-latte.jpg',
         isPopular: true,
@@ -407,7 +407,7 @@ async function main() {
       data: {
         name: 'Earl Grey Reserve Tea',
         description: 'Fragrant bergamot black tea infusion served with organic honey and lemon.',
-        price: 190.00,
+        price: 90.00,
         categoryId: categories[3].id,
         imageUrl: '/assets/products/english-breakfast-tea.jpg',
       },
@@ -418,7 +418,7 @@ async function main() {
       data: {
         name: 'French Butter Croissant',
         description: 'Freshly baked flaky all-butter croissant with honeycomb interior and golden crust.',
-        price: 180.00,
+        price: 110.00,
         categoryId: categories[4].id,
         imageUrl: '/assets/products/butter-croissant.jpg',
         isFeatured: true,
@@ -429,7 +429,7 @@ async function main() {
       data: {
         name: 'Blueberry Almond Muffin',
         description: 'Moist vanilla bakery muffin loaded with wild blueberries and sliced roasted almonds.',
-        price: 200.00,
+        price: 120.00,
         categoryId: categories[4].id,
         imageUrl: '/assets/products/blueberry-muffin.jpg',
         isPopular: true,
@@ -439,7 +439,7 @@ async function main() {
       data: {
         name: 'Double Chocolate Fudge Cookie',
         description: 'Warm, chewy soft-baked cookie with chunks of melted dark and milk chocolate.',
-        price: 150.00,
+        price: 80.00,
         categoryId: categories[4].id,
         imageUrl: '/assets/products/chocolate-chip-cookie.jpg',
       },
@@ -450,7 +450,7 @@ async function main() {
       data: {
         name: 'Artisan Avocado Sourdough Toast',
         description: 'Crushed ripe avocado, cherry tomatoes, micro-greens, chili flakes on toasted sourdough.',
-        price: 380.00,
+        price: 220.00,
         categoryId: categories[5].id,
         imageUrl: '/assets/products/avocado-toast.jpg',
         isFeatured: true,
@@ -461,7 +461,7 @@ async function main() {
       data: {
         name: 'Smoked Turkey & Bacon Panini',
         description: 'Thinly sliced smoked turkey, crispy bacon, aged provolone, pesto on pressed ciabatta.',
-        price: 450.00,
+        price: 260.00,
         categoryId: categories[5].id,
         imageUrl: '/assets/products/turkey-club-sandwich.jpg',
         isPopular: true,
@@ -471,7 +471,7 @@ async function main() {
       data: {
         name: 'Caprese Pesto Baguette',
         description: 'Fresh buffalo mozzarella, heirloom tomatoes, fresh basil and balsamic reduction glaze.',
-        price: 420.00,
+        price: 240.00,
         categoryId: categories[5].id,
         imageUrl: '/assets/products/turkey-club-sandwich.jpg',
       },
@@ -482,7 +482,7 @@ async function main() {
       data: {
         name: 'Acai Berry Power Smoothie',
         description: 'Organic Amazon acai, fresh strawberries, wild blueberries, banana and almond milk.',
-        price: 320.00,
+        price: 180.00,
         categoryId: categories[6].id,
         imageUrl: '/assets/products/strawberry-banana-smoothie.jpg',
         isFeatured: true,
@@ -493,7 +493,7 @@ async function main() {
       data: {
         name: 'Tropical Mango Passion Bowl',
         description: 'Golden mango, passionfruit puree, coconut milk, topped with chia seeds and granola.',
-        price: 340.00,
+        price: 190.00,
         categoryId: categories[6].id,
         imageUrl: '/assets/products/mango-tropical-smoothie.jpg',
       },
@@ -504,7 +504,7 @@ async function main() {
       data: {
         name: 'Seasonal Spiced Pumpkin Latte',
         description: 'Real pumpkin puree, autumn spices, espresso, warm milk and cinnamon stick.',
-        price: 300.00,
+        price: 210.00,
         categoryId: categories[7].id,
         imageUrl: '/assets/products/pumpkin-spice-latte.jpg',
         isFeatured: true,
@@ -514,7 +514,7 @@ async function main() {
       data: {
         name: 'Geisha Reserve V60 Pour-Over',
         description: 'Single-estate Panama Geisha coffee hand-brewed with floral jasmine notes and bergamot.',
-        price: 360.00,
+        price: 280.00,
         categoryId: categories[7].id,
         imageUrl: '/assets/products/americano.jpg',
         isFeatured: true,

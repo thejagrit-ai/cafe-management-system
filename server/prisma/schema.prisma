@@ -73,9 +73,9 @@ model User {
   updatedAt     DateTime  @updatedAt
   lastLoginAt   DateTime?
 
-  customer      Customer?
-  employee      Employee?
-  refreshTokens RefreshToken[]
+  customer                Customer?
+  employee                Employee?
+  refreshTokens           RefreshToken[]
   emailVerificationTokens EmailVerificationToken[]
 
   @@map("users")
@@ -100,12 +100,12 @@ model EmailVerificationToken {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
+  id        String    @id @default(cuid())
+  token     String    @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   revokedAt DateTime?
 
   @@index([userId])
@@ -113,39 +113,47 @@ model RefreshToken {
 }
 
 model Customer {
-  id          String    @id @default(cuid())
-  userId      String    @unique
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  firstName   String
-  lastName    String
-  phone       String?
-  dateOfBirth DateTime?
-  loyaltyPoints Int     @default(0)
-  loyaltyTier   String  @default("BRONZE")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  phone         String?
+  dateOfBirth   DateTime?
+  loyaltyPoints Int       @default(0)
+  loyaltyTier   String    @default("BRONZE")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   addresses           Address[]
   orders              Order[]
   loyaltyTransactions LoyaltyTransaction[]
+  favorites           CustomerFavorite[]
+  reviews             ProductReview[]
+  walletTransactions  WalletTransaction[]
 
   @@map("customers")
 }
 
 model Employee {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  firstName String
-  lastName  String
-  phone     String?
-  position  String?
-  hireDate  DateTime @default(now())
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String      @id @default(cuid())
+  userId        String      @unique
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  phone         String?
+  position      String?
+  hireDate      DateTime    @default(now())
+  payrollType   PayrollType @default(HOURLY)
+  hourlyRate    Decimal     @default(0) @db.Decimal(10, 2)
+  monthlySalary Decimal     @default(0) @db.Decimal(10, 2)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  orders Order[]
+  orders      Order[]
+  shifts      EmployeeShift[]
+  permissions EmployeePermission[]
 
   @@map("employees")
 }
@@ -166,27 +174,29 @@ model Category {
 }
 
 model Product {
-  id              String              @id @default(cuid())
-  name            String
-  description     String?
-  price           Decimal             @db.Decimal(10, 2)
-  imageUrl        String?
-  categoryId      String
-  category        Category            @relation(fields: [categoryId], references: [id])
-  availability    ProductAvailability @default(AVAILABLE)
+  id                 String              @id @default(cuid())
+  name               String
+  description        String?
+  price              Decimal             @db.Decimal(10, 2)
+  imageUrl           String?
+  categoryId         String
+  category           Category            @relation(fields: [categoryId], references: [id])
+  availability       ProductAvailability @default(AVAILABLE)
   // Set when a human picks the availability by hand (86'ing an item, or
   // forcing it back on). The stock automation leaves these products alone so
   // a sale that touches a shared ingredient cannot silently re-list something
   // the bar deliberately pulled.
-  availabilityLocked Boolean          @default(false)
-  isFeatured      Boolean             @default(false)
-  isPopular       Boolean             @default(false)
-  sortOrder       Int                 @default(0)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  availabilityLocked Boolean             @default(false)
+  isFeatured         Boolean             @default(false)
+  isPopular          Boolean             @default(false)
+  sortOrder          Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
-  recipe          Recipe?
-  orderItems      OrderItem[]
+  recipe     Recipe?
+  orderItems OrderItem[]
+  favorites  CustomerFavorite[]
+  reviews    ProductReview[]
 
   @@index([categoryId])
   @@index([availability])
@@ -194,22 +204,23 @@ model Product {
 }
 
 model Ingredient {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
-  sku          String   @unique
+  sku          String    @unique
   unit         String
-  currentStock Decimal  @default(0) @db.Decimal(12, 3)
-  minStock     Decimal  @default(0) @db.Decimal(12, 3)
-  maxStock     Decimal  @default(0) @db.Decimal(12, 3)
-  costPerUnit  Decimal  @default(0) @db.Decimal(10, 4)
+  currentStock Decimal   @default(0) @db.Decimal(12, 3)
+  minStock     Decimal   @default(0) @db.Decimal(12, 3)
+  maxStock     Decimal   @default(0) @db.Decimal(12, 3)
+  costPerUnit  Decimal   @default(0) @db.Decimal(10, 4)
   supplierId   String?
   supplier     Supplier? @relation(fields: [supplierId], references: [id])
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  recipeIngredients RecipeIngredient[]
+  recipeIngredients     RecipeIngredient[]
   inventoryTransactions InventoryTransaction[]
+  purchaseOrderItems    PurchaseOrderItem[]
 
   @@map("ingredients")
 }
@@ -225,21 +236,22 @@ model Supplier {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  ingredients Ingredient[]
+  ingredients    Ingredient[]
+  purchaseOrders PurchaseOrder[]
 
   @@map("suppliers")
 }
 
 model Recipe {
-  id          String   @id @default(cuid())
-  productId   String   @unique
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  productId    String   @unique
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   instructions String?
-  prepTime    Int      @default(0)
-  cookTime    Int      @default(0)
-  servings    Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  prepTime     Int      @default(0)
+  cookTime     Int      @default(0)
+  servings     Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   ingredients RecipeIngredient[]
 
@@ -247,16 +259,16 @@ model Recipe {
 }
 
 model RecipeIngredient {
-  id           String      @id @default(cuid())
+  id           String     @id @default(cuid())
   recipeId     String
-  recipe       Recipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   ingredientId String
-  ingredient   Ingredient  @relation(fields: [ingredientId], references: [id])
-  quantity     Decimal     @db.Decimal(10, 3)
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  quantity     Decimal    @db.Decimal(10, 3)
   unit         String
   notes        String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@unique([recipeId, ingredientId])
   @@map("recipe_ingredients")
@@ -283,19 +295,19 @@ model InventoryTransaction {
 }
 
 model Address {
-  id            String   @id @default(cuid())
-  customerId    String
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  label         String
-  street        String
-  city          String
-  state         String
-  postalCode    String
-  country       String   @default("USA")
-  isDefault     Boolean  @default(false)
-  instructions  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  label        String
+  street       String
+  city         String
+  state        String
+  postalCode   String
+  country      String   @default("USA")
+  isDefault    Boolean  @default(false)
+  instructions String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   orders Order[]
 
@@ -303,37 +315,39 @@ model Address {
 }
 
 model Order {
-  id              String       @id @default(cuid())
-  orderNumber     String       @unique
-  customerId      String?
-  customer        Customer?    @relation(fields: [customerId], references: [id])
-  employeeId      String?
-  employee        Employee?    @relation(fields: [employeeId], references: [id])
-  status          OrderStatus  @default(PENDING)
-  type            OrderType    @default(PICKUP)
-  tableNumber     Int?
-  guestToken      String?
-  subtotal        Decimal      @db.Decimal(10, 2)
-  taxAmount       Decimal      @default(0) @db.Decimal(10, 2)
-  discountAmount  Decimal      @default(0) @db.Decimal(10, 2)
-  deliveryFee     Decimal      @default(0) @db.Decimal(10, 2)
-  loyaltyPointsUsed Int        @default(0)
-  loyaltyPointsEarned Int      @default(0)
-  loyaltyDiscount Decimal      @default(0) @db.Decimal(10, 2)
-  total           Decimal      @db.Decimal(10, 2)
-  notes           String?
-  addressId       String?
-  address         Address?     @relation(fields: [addressId], references: [id])
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  confirmedAt     DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  cancellationReason String?
+  id                  String      @id @default(cuid())
+  orderNumber         String      @unique
+  customerId          String?
+  customer            Customer?   @relation(fields: [customerId], references: [id])
+  employeeId          String?
+  employee            Employee?   @relation(fields: [employeeId], references: [id])
+  status              OrderStatus @default(PENDING)
+  type                OrderType   @default(PICKUP)
+  tableNumber         Int?
+  guestToken          String?
+  subtotal            Decimal     @db.Decimal(10, 2)
+  taxAmount           Decimal     @default(0) @db.Decimal(10, 2)
+  discountAmount      Decimal     @default(0) @db.Decimal(10, 2)
+  deliveryFee         Decimal     @default(0) @db.Decimal(10, 2)
+  loyaltyPointsUsed   Int         @default(0)
+  loyaltyPointsEarned Int         @default(0)
+  loyaltyDiscount     Decimal     @default(0) @db.Decimal(10, 2)
+  total               Decimal     @db.Decimal(10, 2)
+  notes               String?
+  addressId           String?
+  address             Address?    @relation(fields: [addressId], references: [id])
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  confirmedAt         DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  cancellationReason  String?
 
   items               OrderItem[]
   payments            Payment[]
   loyaltyTransactions LoyaltyTransaction[]
+  couponRedemptions   CouponRedemption[]
+  reviews             ProductReview[]
 
   @@index([customerId])
   @@index([employeeId])
@@ -343,17 +357,17 @@ model Order {
 }
 
 model OrderItem {
-  id            String   @id @default(cuid())
-  orderId       String
-  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId     String
-  product       Product  @relation(fields: [productId], references: [id])
-  quantity      Int
-  unitPrice     Decimal  @db.Decimal(10, 2)
-  totalPrice    Decimal  @db.Decimal(10, 2)
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Decimal  @db.Decimal(10, 2)
+  totalPrice Decimal  @db.Decimal(10, 2)
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([orderId])
   @@index([productId])
@@ -361,17 +375,17 @@ model OrderItem {
 }
 
 model Payment {
-  id              String         @id @default(cuid())
+  id              String        @id @default(cuid())
   orderId         String
-  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  amount          Decimal        @db.Decimal(10, 2)
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount          Decimal       @db.Decimal(10, 2)
   method          PaymentMethod
-  status          PaymentStatus  @default(PENDING)
+  status          PaymentStatus @default(PENDING)
   transactionId   String?
   referenceNumber String?
   paidAt          DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@index([orderId])
   @@index([status])
@@ -379,30 +393,30 @@ model Payment {
 }
 
 model BusinessSettings {
-  id                      String   @id @default(cuid())
-  taxRate                 Decimal  @default(0) @db.Decimal(5, 2)
-  deliveryFee             Decimal  @default(0) @db.Decimal(10, 2)
-  allowOutOfStockOrders   Boolean  @default(false)
-  currency                String   @default("USD")
-  openingTime             String?
-  closingTime             String?
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  taxRate               Decimal  @default(0) @db.Decimal(5, 2)
+  deliveryFee           Decimal  @default(0) @db.Decimal(10, 2)
+  allowOutOfStockOrders Boolean  @default(false)
+  currency              String   @default("USD")
+  openingTime           String?
+  closingTime           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@map("business_settings")
 }
 
 model AuditLog {
-  id          String   @id @default(cuid())
-  userId      String?
-  action      String
-  entity      String
-  entityId    String?
-  oldData     Json?
-  newData     Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  oldData   Json?
+  newData   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([entity, entityId])
@@ -431,4 +445,223 @@ model LoyaltyTransaction {
   @@index([customerId])
   @@index([createdAt])
   @@map("loyalty_transactions")
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum CouponStatus {
+  ACTIVE
+  PAUSED
+  EXPIRED
+}
+
+model Coupon {
+  id               String       @id @default(cuid())
+  code             String       @unique
+  name             String
+  description      String?
+  type             CouponType
+  value            Decimal      @db.Decimal(10, 2)
+  minOrderAmount   Decimal      @default(0) @db.Decimal(10, 2)
+  maxDiscount      Decimal?     @db.Decimal(10, 2)
+  usageLimit       Int?
+  perCustomerLimit Int?
+  startsAt         DateTime?
+  endsAt           DateTime?
+  status           CouponStatus @default(ACTIVE)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  redemptions CouponRedemption[]
+
+  @@index([code])
+  @@index([status])
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id         String   @id @default(cuid())
+  couponId   String
+  coupon     Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customerId String?
+  discount   Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+
+  @@index([couponId])
+  @@index([customerId])
+  @@index([orderId])
+  @@map("coupon_redemptions")
+}
+
+enum GiftCardStatus {
+  ACTIVE
+  REDEEMED
+  CANCELLED
+  EXPIRED
+}
+
+model GiftCard {
+  id                   String         @id @default(cuid())
+  code                 String         @unique
+  initialValue         Decimal        @db.Decimal(10, 2)
+  remainingValue       Decimal        @db.Decimal(10, 2)
+  status               GiftCardStatus @default(ACTIVE)
+  purchaserName        String?
+  recipientEmail       String?
+  expiresAt            DateTime?
+  redeemedByCustomerId String?
+  redeemedAt           DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@index([code])
+  @@index([status])
+  @@map("gift_cards")
+}
+
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+  ADJUSTMENT
+}
+
+model WalletTransaction {
+  id          String                @id @default(cuid())
+  customerId  String
+  customer    Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type        WalletTransactionType
+  amount      Decimal               @db.Decimal(10, 2)
+  source      String?
+  referenceId String?
+  note        String?
+  createdAt   DateTime              @default(now())
+
+  @@index([customerId])
+  @@index([createdAt])
+  @@map("wallet_transactions")
+}
+
+model CustomerFavorite {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, productId])
+  @@index([customerId])
+  @@map("customer_favorites")
+}
+
+model ProductReview {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orderId     String?
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  rating      Int
+  comment     String?
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([customerId, productId, orderId])
+  @@index([productId])
+  @@index([customerId])
+  @@map("product_reviews")
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum PayrollType {
+  HOURLY
+  MONTHLY
+}
+
+model EmployeeShift {
+  id           String      @id @default(cuid())
+  employeeId   String
+  employee     Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  clockInAt    DateTime    @default(now())
+  clockOutAt   DateTime?
+  breakMinutes Int         @default(0)
+  notes        String?
+  status       ShiftStatus @default(OPEN)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([employeeId])
+  @@index([clockInAt])
+  @@index([status])
+  @@map("employee_shifts")
+}
+
+model EmployeePermission {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  permission String
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([employeeId, permission])
+  @@index([employeeId])
+  @@map("employee_permissions")
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  orderNumber String              @unique
+  supplierId  String?
+  supplier    Supplier?           @relation(fields: [supplierId], references: [id])
+  status      PurchaseOrderStatus @default(DRAFT)
+  notes       String?
+  expectedAt  DateTime?
+  createdById String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  items PurchaseOrderItem[]
+
+  @@index([supplierId])
+  @@index([status])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  ingredientId     String
+  ingredient       Ingredient    @relation(fields: [ingredientId], references: [id])
+  quantity         Decimal       @db.Decimal(12, 3)
+  unitCost         Decimal       @default(0) @db.Decimal(10, 4)
+  receivedQuantity Decimal       @default(0) @db.Decimal(12, 3)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([ingredientId])
+  @@map("purchase_order_items")
 }

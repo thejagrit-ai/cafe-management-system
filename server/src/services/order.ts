@@ -5,6 +5,7 @@ import { NotFoundError, InsufficientStockError, ConflictError, BadRequestError }
 import { AuthenticatedRequest } from '../types';
 import { eventHub } from '../utils/eventHub';
 import { loyaltyService, POINT_REDEMPTION_VALUE } from './loyalty';
+import { couponService } from './coupon';
 import { syncAvailabilityForIngredients, announceStockLevels } from './stockSync';
 import { OrderStatus, OrderType, InventoryTransactionType, ProductAvailability, Prisma, PaymentMethod, PaymentStatus } from '@prisma/client';
 import { generateOrderNumber, calculateTax, calculateTotal } from '../utils/helpers';
@@ -18,6 +19,7 @@ interface CreateOrderData {
   notes?: string;
   addressId?: string;
   redeemPoints?: number;
+  couponCode?: string;
   paymentMethod?: PaymentMethod;
   paymentDetails?: {
     cardNumber?: string;
@@ -153,6 +155,8 @@ export class OrderService {
       // a customer's balance could only ever grow.
       let pointsRedeemed = 0;
       let discountAmount = 0;
+      let couponDiscount = 0;
+      let couponId: string | null = null;
 
       if (customerId && data.redeemPoints && data.redeemPoints > 0) {
         const customer = await tx.customer.findUnique({
@@ -175,6 +179,12 @@ export class OrderService {
       const deliveryFee = data.type === OrderType.DELIVERY ? Number(settings?.deliveryFee ?? 0) : 0;
       if (pointsRedeemed > 0) {
         discountAmount = pointsRedeemed * POINT_REDEMPTION_VALUE;
+      }
+      if (data.couponCode) {
+        const couponResult = await couponService.validateForOrder(data.couponCode, subtotal - discountAmount, customerId, tx);
+        couponDiscount = couponResult.discount;
+        couponId = couponResult.coupon.id;
+        discountAmount += couponDiscount;
       }
       const totalAmount = calculateTotal(subtotal, taxAmount, discountAmount, deliveryFee);
 
@@ -213,6 +223,10 @@ export class OrderService {
       // failed order can never leave a customer short of points.
       if (customerId && pointsRedeemed > 0) {
         await loyaltyService.applyRedemption(tx, customerId, pointsRedeemed, newOrder.id);
+      }
+
+      if (couponId && couponDiscount > 0) {
+        await couponService.redeem(tx, couponId, newOrder.id, couponDiscount, customerId);
       }
 
       // If paid upfront, record the approved payment in the database

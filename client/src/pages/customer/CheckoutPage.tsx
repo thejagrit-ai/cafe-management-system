@@ -8,6 +8,7 @@ import { ordersApi } from '@/api/orders'
 import { customersApi } from '@/api/customers'
 import { settingsApi } from '@/api/settings'
 import { loyaltyApi } from '@/api/loyalty'
+import { couponsApi } from '@/api/growth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -52,6 +53,8 @@ export default function CheckoutPage() {
   )
   const [paymentMethod, setPaymentMethod] = useState<'CARD' | 'CASH' | 'ONLINE'>('CARD')
   const [notes, setNotes] = useState('')
+  const [couponCode, setCouponCode] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null)
 
   // Simulated card details for upfront approval
   const [cardNumber, setCardNumber] = useState('4532 •••• •••• 8892')
@@ -120,8 +123,9 @@ export default function CheckoutPage() {
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false)
   const pointsRedeemed = useLoyaltyPoints ? maxRedeemablePoints : 0
   const loyaltyDiscount = pointsRedeemed * pointValue
+  const couponDiscount = appliedCoupon?.discount ?? 0
 
-  const total = Math.max(subtotal + taxAmount + deliveryFee - loyaltyDiscount, 0)
+  const total = Math.max(subtotal + taxAmount + deliveryFee - loyaltyDiscount - couponDiscount, 0)
 
   const createOrderMutation = useMutation({
     mutationFn: (data: any) => ordersApi.create(data),
@@ -145,6 +149,21 @@ export default function CheckoutPage() {
     },
     onError: (error: any) => {
       toast.error(error.message || t('errors.genericTitle'))
+    }
+  })
+
+  const validateCouponMutation = useMutation({
+    mutationFn: () => couponsApi.validate({ code: couponCode, subtotal: Math.max(subtotal - loyaltyDiscount, 0) }),
+    onSuccess: (response) => {
+      if (response.data) {
+        setAppliedCoupon({ code: response.data.coupon.code, discount: response.data.discount })
+        setCouponCode(response.data.coupon.code)
+        toast.success('Coupon applied')
+      }
+    },
+    onError: (error: any) => {
+      setAppliedCoupon(null)
+      toast.error(error.message || 'Coupon could not be applied')
     }
   })
 
@@ -247,6 +266,7 @@ export default function CheckoutPage() {
       notes: finalNotes || undefined,
       addressId: orderType === 'DELIVERY' && selectedAddressId ? selectedAddressId : undefined,
       redeemPoints: pointsRedeemed > 0 ? pointsRedeemed : undefined,
+      couponCode: appliedCoupon?.code,
       paymentMethod: paymentMethod,
       paymentDetails: (paymentMethod === 'CARD' || paymentMethod === 'ONLINE') ? {
         cardNumber: cardNumber.replace(/\s/g, ''),
@@ -862,6 +882,13 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span>Coupon {appliedCoupon?.code}</span>
+                    <span>-{formatCurrency(couponDiscount)}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between text-sm font-bold text-foreground pt-3 border-t border-border/60 items-baseline">
                   <span className="font-serif text-base">{t('checkout.totalToPay')}</span>
                   <span className="text-[#7C4EEE] font-sans text-xl font-bold">{formatCurrency(total)}</span>
@@ -902,6 +929,34 @@ export default function CheckoutPage() {
                     </span>
                   </span>
                 </label>
+              )}
+
+              {!!user?.customer?.id && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Coupon Code
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={couponCode}
+                      onChange={(event) => {
+                        setCouponCode(event.target.value.toUpperCase())
+                        setAppliedCoupon(null)
+                      }}
+                      placeholder="SAVE10"
+                      className="h-10 rounded-xl text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={!couponCode || validateCouponMutation.isPending}
+                      onClick={() => validateCouponMutation.mutate()}
+                      className="h-10 rounded-xl text-xs"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
               )}
 
               {/* Quality Guarantee Pill */}

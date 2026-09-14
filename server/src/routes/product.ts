@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { productController } from '../controllers/product';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { createProductSchema, updateProductSchema, productQuerySchema } from '../validators/product';
+import { requireStaffPermission } from '../middleware/permission';
+import { createProductSchema, updateProductSchema, productQuerySchema, updateProductAvailabilitySchema } from '../validators/product';
 import { idParamSchema, categoryIdParamSchema } from '../validators/auth';
 
 const router = Router();
@@ -14,6 +15,7 @@ router.get('/category/:categoryId', validate(categoryIdParamSchema), validate(pr
 router.get('/:id', validate(idParamSchema), productController.findById);
 
 router.post('/', authenticate, authorize('ADMIN'), validate(createProductSchema), productController.create);
+router.put('/:id/availability', authenticate, authorize('ADMIN', 'STAFF'), requireStaffPermission('PRODUCT_AVAILABILITY'), validate(updateProductAvailabilitySchema), productController.updateAvailability);
 router.put('/:id', authenticate, authorize('ADMIN'), validate(idParamSchema), validate(updateProductSchema), productController.update);
 router.delete('/:id', authenticate, authorize('ADMIN'), validate(idParamSchema), productController.delete);
 

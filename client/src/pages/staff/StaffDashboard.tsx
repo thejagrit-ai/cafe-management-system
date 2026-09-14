@@ -1,7 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { dashboardApi } from '@/api/dashboard'
+import { employeeOpsApi } from '@/api/growth'
+import { Input } from '@/components/ui/input'
 import { ordersApi } from '@/api/orders'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +30,8 @@ import { useOrderNotification } from '@/hooks/useOrderNotification'
 export default function StaffDashboard() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const [shiftNotes, setShiftNotes] = useState('')
+  const [breakMinutes, setBreakMinutes] = useState('0')
 
   // Live polling for staff console every 5s
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -37,6 +41,34 @@ export default function StaffDashboard() {
   })
 
   const dashboard = data?.data
+
+  const { data: shiftData } = useQuery({
+    queryKey: ['current-shift'],
+    queryFn: () => employeeOpsApi.getCurrentShift(),
+    refetchInterval: 30000,
+  })
+  const currentShift = shiftData?.data
+
+  const clockInMutation = useMutation({
+    mutationFn: () => employeeOpsApi.clockIn(shiftNotes || undefined),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-shift'] })
+      setShiftNotes('')
+      toast.success('Clocked in')
+    },
+    onError: (err: any) => toast.error(err.message || 'Unable to clock in')
+  })
+
+  const clockOutMutation = useMutation({
+    mutationFn: () => employeeOpsApi.clockOut({ breakMinutes: Number(breakMinutes || 0), notes: shiftNotes || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-shift'] })
+      setShiftNotes('')
+      setBreakMinutes('0')
+      toast.success('Clocked out')
+    },
+    onError: (err: any) => toast.error(err.message || 'Unable to clock out')
+  })
 
   // Hook for audio notifications on incoming orders
   const { isMuted, toggleMute, testSound } = useOrderNotification({
@@ -113,6 +145,12 @@ export default function StaffDashboard() {
     }
   }
 
+  const getUrgency = (minutes = 0) => {
+    if (minutes >= 20) return { label: 'Late', tone: 'bg-rose-500/10 text-rose-700 border-rose-500/20', ring: 'border-rose-500/50' }
+    if (minutes >= 12) return { label: 'Watch', tone: 'bg-amber-500/10 text-amber-700 border-amber-500/20', ring: 'border-amber-500/50' }
+    return { label: 'On time', tone: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20', ring: 'border-border' }
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -163,6 +201,49 @@ export default function StaffDashboard() {
             <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
             <span>{t('common.refresh')}</span>
           </Button>
+        </div>
+      </div>
+
+      <div className="p-4 rounded-2xl bg-card border border-border shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div>
+          <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Shift</span>
+          <p className="text-sm font-semibold text-foreground">
+            {currentShift ? `Clocked in at ${formatTime(currentShift.clockInAt)}` : 'Not clocked in'}
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-[1fr_110px_auto] w-full lg:max-w-xl">
+          <Input
+            value={shiftNotes}
+            onChange={(event) => setShiftNotes(event.target.value)}
+            placeholder="Shift note"
+            className="h-10 rounded-xl text-xs"
+          />
+          <Input
+            value={breakMinutes}
+            onChange={(event) => setBreakMinutes(event.target.value)}
+            placeholder="Break min"
+            className="h-10 rounded-xl text-xs"
+            disabled={!currentShift}
+          />
+          {currentShift ? (
+            <Button
+              type="button"
+              onClick={() => clockOutMutation.mutate()}
+              disabled={clockOutMutation.isPending}
+              className="h-10 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs"
+            >
+              Clock out
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => clockInMutation.mutate()}
+              disabled={clockInMutation.isPending}
+              className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs"
+            >
+              Clock in
+            </Button>
+          )}
         </div>
       </div>
 
@@ -230,11 +311,12 @@ export default function StaffDashboard() {
             {dashboard.pendingOrders.map((order: any) => {
               const action = getNextAction(order.status)
               const ActionIcon = action?.icon || ArrowRight
+              const urgency = getUrgency(order.prepAgeMinutes)
 
               return (
                 <div
                   key={order.id}
-                  className="p-5 rounded-2xl bg-card border border-border flex flex-col justify-between space-y-4 hover:border-border/80 transition-colors shadow-xs"
+                  className={cn("p-5 rounded-2xl bg-card border flex flex-col justify-between space-y-4 hover:border-border/80 transition-colors shadow-xs", urgency.ring)}
                 >
                   {/* Top Bar */}
                   <div className="flex justify-between items-start gap-2">
@@ -254,9 +336,14 @@ export default function StaffDashboard() {
                       </p>
                     </div>
 
-                    <Badge className={cn("text-xs font-semibold uppercase tracking-wider", getStatusColor(order.status))}>
-                      {getStatusLabel(order.status)}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <Badge className={cn("text-xs font-semibold uppercase tracking-wider", getStatusColor(order.status))}>
+                        {getStatusLabel(order.status)}
+                      </Badge>
+                      <Badge className={cn("text-[10px]", urgency.tone)}>
+                        {urgency.label} · {order.prepAgeMinutes ?? 0}m
+                      </Badge>
+                    </div>
                   </div>
 
                   {/* Delivery / Order Type Indicator */}
@@ -266,6 +353,25 @@ export default function StaffDashboard() {
                     {order.type === 'DELIVERY' && <Truck className="w-3.5 h-3.5 text-emerald-500" />}
                     <span className="font-medium text-foreground">{getOrderTypeLabel(order.type)}</span>
                   </div>
+
+                  {(order.items?.length || order.notes) && (
+                    <div className="rounded-xl border border-border/60 bg-secondary/20 p-3 text-xs space-y-2">
+                      {order.items?.map((item: any) => (
+                        <div key={item.id} className="flex items-start justify-between gap-3">
+                          <div>
+                            <span className="font-semibold text-foreground">{item.name}</span>
+                            {item.notes && <p className="text-[11px] text-amber-600 mt-0.5">{item.notes}</p>}
+                          </div>
+                          <span className="font-mono font-bold text-foreground">x{item.quantity}</span>
+                        </div>
+                      ))}
+                      {order.notes && (
+                        <p className="border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+                          {order.notes}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Action Button */}
                   {action && (

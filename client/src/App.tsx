@@ -39,6 +39,11 @@ const AdminCustomers = lazy(() => import('@/pages/admin/AdminCustomers'))
 const AdminSuppliers = lazy(() => import('@/pages/admin/AdminSuppliers'))
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'))
 const AdminReports = lazy(() => import('@/pages/admin/AdminReports'))
+const AdminAuditLogs = lazy(() => import('@/pages/admin/AdminAuditLogs'))
+const AdminPromotions = lazy(() => import('@/pages/admin/AdminPromotions'))
+const AdminPurchaseOrders = lazy(() => import('@/pages/admin/AdminPurchaseOrders'))
+const AdminReviews = lazy(() => import('@/pages/admin/AdminReviews'))
+const AdminPayroll = lazy(() => import('@/pages/admin/AdminPayroll'))
 
 const StaffLayout = lazy(() => import('@/layouts/StaffLayout'))
 const StaffDashboard = lazy(() => import('@/pages/staff/StaffDashboard'))
@@ -181,11 +186,16 @@ export default function App() {
         <Route path="orders" element={<Suspense fallback={<RouteFallback />}><AdminOrders /></Suspense>} />
         <Route path="tables" element={<Suspense fallback={<RouteFallback />}><AdminTables /></Suspense>} />
         <Route path="payments" element={<Suspense fallback={<RouteFallback />}><AdminPayments /></Suspense>} />
+        <Route path="payroll" element={<Suspense fallback={<RouteFallback />}><AdminPayroll /></Suspense>} />
         <Route path="employees" element={<Suspense fallback={<RouteFallback />}><AdminEmployees /></Suspense>} />
         <Route path="customers" element={<Suspense fallback={<RouteFallback />}><AdminCustomers /></Suspense>} />
         <Route path="suppliers" element={<Suspense fallback={<RouteFallback />}><AdminSuppliers /></Suspense>} />
+        <Route path="purchase-orders" element={<Suspense fallback={<RouteFallback />}><AdminPurchaseOrders /></Suspense>} />
+        <Route path="promotions" element={<Suspense fallback={<RouteFallback />}><AdminPromotions /></Suspense>} />
+        <Route path="reviews" element={<Suspense fallback={<RouteFallback />}><AdminReviews /></Suspense>} />
         <Route path="settings" element={<Suspense fallback={<RouteFallback />}><AdminSettings /></Suspense>} />
         <Route path="reports" element={<Suspense fallback={<RouteFallback />}><AdminReports /></Suspense>} />
+        <Route path="audit-logs" element={<Suspense fallback={<RouteFallback />}><AdminAuditLogs /></Suspense>} />
       </Route>
 
       <Route

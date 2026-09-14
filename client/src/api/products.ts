@@ -24,5 +24,8 @@ export const productsApi = {
 
   update: (id: string, data: Partial<Product>) => api.put<Product>(`/products/${id}`, data),
 
+  updateAvailability: (id: string, data: { availability: Product['availability']; availabilityLocked?: boolean }) =>
+    api.put<Product>(`/products/${id}/availability`, data),
+
   delete: (id: string) => api.delete(`/products/${id}`),
 };

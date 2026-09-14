@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { paymentController } from '../controllers/payment';
 import { authenticate, authorize } from '../middleware/auth';
 import { validate } from '../middleware/validate';
+import { requireStaffPermission } from '../middleware/permission';
 import {
   createPaymentSchema,
   paymentQuerySchema,
@@ -12,12 +13,12 @@ import { orderIdParamSchema } from '../validators/auth';
 
 const router = Router();
 
-router.get('/', authenticate, authorize('ADMIN', 'STAFF'), validate(paymentQuerySchema), paymentController.findAll);
+router.get('/', authenticate, authorize('ADMIN', 'STAFF'), requireStaffPermission('PAYMENTS_RECORD'), validate(paymentQuerySchema), paymentController.findAll);
 router.get('/export', authenticate, authorize('ADMIN'), validate(paymentExportQuerySchema), paymentController.exportAll);
 router.get('/totals-by-method', authenticate, authorize('ADMIN'), paymentController.getTotalsByMethod);
 router.get('/order/:orderId', authenticate, validate(orderIdParamSchema), paymentController.findByOrderId);
 
-router.post('/', authenticate, authorize('ADMIN', 'STAFF'), validate(createPaymentSchema), paymentController.create);
+router.post('/', authenticate, authorize('ADMIN', 'STAFF'), requireStaffPermission('PAYMENTS_RECORD'), validate(createPaymentSchema), paymentController.create);
 
 // Settling, failing or refunding a recorded payment is an admin action.
 router.put('/:id/status', authenticate, authorize('ADMIN'), validate(updatePaymentStatusSchema), paymentController.updateStatus);

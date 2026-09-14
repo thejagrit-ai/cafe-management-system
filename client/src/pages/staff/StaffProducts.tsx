@@ -1,17 +1,20 @@
 import React, { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { productsApi } from '@/api/products'
 import { categoriesApi } from '@/api/categories'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency, cn } from '@/utils/lib'
 import { SmartImage } from '@/components/SmartImage'
 import { Search, Coffee } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function StaffProducts() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
 
@@ -28,6 +31,17 @@ export default function StaffProducts() {
 
   const products = data?.data || []
   const categories = categoriesData?.data || []
+
+  const availabilityMutation = useMutation({
+    mutationFn: ({ id, availability }: { id: string; availability: 'AVAILABLE' | 'UNAVAILABLE' }) =>
+      productsApi.updateAvailability(id, { availability, availabilityLocked: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff-products'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] })
+      toast.success('Availability updated')
+    },
+    onError: (err: any) => toast.error(err?.message || 'Unable to update availability'),
+  })
 
   return (
     <div className="space-y-6">
@@ -157,16 +171,31 @@ export default function StaffProducts() {
                   </div>
                 </div>
 
-                <Badge
-                  className={cn(
-                    "text-[10px] font-semibold shrink-0 uppercase border px-2 py-0.5 rounded-lg",
-                    isAvailable
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                      : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
-                  )}
-                >
-                  {isAvailable ? t('common.available') : t('common.soldOut')}
-                </Badge>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <Badge
+                    className={cn(
+                      "text-[10px] font-semibold uppercase border px-2 py-0.5 rounded-lg",
+                      isAvailable
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                    )}
+                  >
+                    {isAvailable ? t('common.available') : t('common.soldOut')}
+                  </Badge>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => availabilityMutation.mutate({
+                      id: product.id,
+                      availability: isAvailable ? 'UNAVAILABLE' : 'AVAILABLE',
+                    })}
+                    disabled={availabilityMutation.isPending}
+                    className="h-7 rounded-lg px-2 text-[10px]"
+                  >
+                    {isAvailable ? 'Mark out' : 'Restore'}
+                  </Button>
+                </div>
               </div>
             )
           })}

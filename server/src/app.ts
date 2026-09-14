@@ -23,6 +23,13 @@ import reportRoutes from './routes/report';
 import dashboardRoutes from './routes/dashboard';
 import eventRoutes from './routes/events';
 import loyaltyRoutes from './routes/loyalty';
+import auditLogRoutes from './routes/auditLog';
+import couponRoutes from './routes/coupon';
+import customerEngagementRoutes from './routes/customerEngagement';
+import employeeOpsRoutes from './routes/employeeOps';
+import purchaseOrderRoutes from './routes/purchaseOrder';
+import walletRoutes from './routes/wallet';
+import payrollRoutes from './routes/payroll';
 
 const app = express();
 
@@ -121,6 +128,13 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/customer-engagement', customerEngagementRoutes);
+app.use('/api/employee-ops', employeeOpsRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/payroll', payrollRoutes);
 
 // ── 404 for unknown API routes ──────────────────────────────────────────────
 // This must come BEFORE the static-file / SPA fallback so that genuine API

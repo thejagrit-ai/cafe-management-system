@@ -10,6 +10,8 @@ export interface AdminDashboard {
     lowStockItems: number;
     totalProducts: number;
     totalCustomers: number;
+    cancelledOrders?: number;
+    refundRate?: number;
   };
   lowStock: Array<{ id: string; name: string; currentStock: number; minStock: number; unit: string }>;
   recentOrders: Array<{
@@ -28,6 +30,21 @@ export interface AdminDashboard {
   popularProducts: Array<{ productId: string; name: string; imageUrl?: string | null; quantity: number; revenue: number }>;
   orderTypeDistribution?: Array<{ type: string; count: number; revenue: number }>;
   paymentMethodDistribution?: Array<{ method: string; count: number; revenue: number }>;
+  profitSnapshot?: {
+    revenue: number;
+    ingredientCost: number;
+    grossProfit: number;
+    grossMarginPercent: number;
+    bestMarginProducts: Array<{ productId: string; name: string; revenue: number; cost: number; quantity: number; grossProfit: number; marginPercent: number }>;
+    lowMarginProducts: Array<{ productId: string; name: string; revenue: number; cost: number; quantity: number; grossProfit: number; marginPercent: number }>;
+  };
+  inventoryForecast?: Array<{ id: string; name: string; unit: string; currentStock: number; minStock: number; dailyUse: number; daysUntilLow: number | null; suggestedOrderQty: number; supplier: string | null }>;
+  tablePerformance?: Array<{ tableNumber: number | null; orders: number; revenue: number; averageTicket: number; activeOrders?: number; occupied?: boolean; averageTableMinutes?: number | null }>;
+  customerInsights?: {
+    newCustomers: number;
+    topCustomers: Array<{ customerId: string | null; name: string; email: string | null; orders: number; totalSpent: number }>;
+  };
+  refundStats?: { paidPayments: number; refundedPayments: number; cancelledOrders: number; refundRate: number };
 }
 
 export interface StaffDashboard {
@@ -36,7 +53,7 @@ export interface StaffDashboard {
     pendingOrders: number;
     completedOrders: number;
   };
-  pendingOrders: Array<{ id: string; orderNumber: string; type: string; tableNumber: number | null; customerName: string; status: string; itemCount: number; createdAt: string }>;
+  pendingOrders: Array<{ id: string; orderNumber: string; type: string; tableNumber: number | null; customerName: string; status: string; itemCount: number; items?: Array<{ id: string; name: string; quantity: number; notes?: string }>; notes?: string; createdAt: string; prepAgeMinutes?: number }>;
 }
 
 export interface SalesReport {
@@ -71,4 +88,22 @@ export const reportsApi = {
 
   exportReport: (params: { type: 'sales' | 'inventory' | 'products'; dateFrom?: string; dateTo?: string }) =>
     api.get<any[]>('/reports/export', params),
+};
+
+export interface AuditLog {
+  id: string;
+  userId?: string | null;
+  action: string;
+  entity: string;
+  entityId?: string | null;
+  oldData?: unknown;
+  newData?: unknown;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  createdAt: string;
+}
+
+export const auditLogsApi = {
+  getAll: (params?: { page?: number; limit?: number; search?: string; entity?: string; action?: string }) =>
+    api.get<AuditLog[]>('/audit-logs', params),
 };

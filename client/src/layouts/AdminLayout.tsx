@@ -28,7 +28,12 @@ import {
   ChevronRight,
   QrCode,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  ShieldCheck,
+  Percent,
+  MessageSquare,
+  PackageCheck,
+  IndianRupee
 } from 'lucide-react'
 
 export default function AdminLayout() {
@@ -71,6 +76,7 @@ export default function AdminLayout() {
         { href: '/admin/ingredients', label: t('admin.inventory'), icon: Boxes },
         { href: '/admin/recipes', label: t('admin.recipes'), icon: BookOpen },
         { href: '/admin/suppliers', label: t('admin.suppliers'), icon: Truck },
+        { href: '/admin/purchase-orders', label: 'Purchase Orders', icon: PackageCheck },
       ]
     },
     {
@@ -78,12 +84,15 @@ export default function AdminLayout() {
       items: [
         { href: '/admin/customers', label: t('admin.customers'), icon: UserCheck },
         { href: '/admin/employees', label: t('admin.employees'), icon: Users },
+        { href: '/admin/reviews', label: 'Reviews', icon: MessageSquare },
+        { href: '/admin/promotions', label: 'Promotions', icon: Percent },
       ]
     },
     {
       group: t('admin.navFinance'),
       items: [
         { href: '/admin/payments', label: t('admin.payments'), icon: CreditCard },
+        { href: '/admin/payroll', label: 'HR Payroll', icon: IndianRupee },
         { href: '/admin/reports', label: t('admin.reports'), icon: BarChart3 },
       ]
     },
@@ -91,6 +100,7 @@ export default function AdminLayout() {
       group: t('admin.navSystem'),
       items: [
         { href: '/admin/settings', label: t('admin.settings'), icon: Settings },
+        { href: '/admin/audit-logs', label: 'Audit Logs', icon: ShieldCheck },
       ]
     },
   ]

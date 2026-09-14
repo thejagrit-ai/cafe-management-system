@@ -109,6 +109,13 @@ export class ProductService {
     return product;
   }
 
+  async updateAvailability(id: string, data: { availability: string; availabilityLocked?: boolean }, req: AuthenticatedRequest) {
+    return this.update(id, {
+      availability: data.availability,
+      availabilityLocked: data.availabilityLocked ?? true,
+    }, req);
+  }
+
   async delete(id: string, req: AuthenticatedRequest) {
     const existing = await productRepository.findById(id);
     if (!existing) {

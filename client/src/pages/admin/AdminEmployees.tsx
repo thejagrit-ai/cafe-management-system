@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { employeesApi, type EmployeeQueryParams } from '@/api/employees'
+import { employeeOpsApi, type EmployeePermission } from '@/api/growth'
 import type { Employee } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +13,8 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Search, Edit2, KeyRound, ChevronLeft, ChevronRight, Users } from 'lucide-react'
+import { formatDate } from '@/utils/lib'
+import { Plus, Search, Edit2, KeyRound, ChevronLeft, ChevronRight, Users, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 
 const getErrorMessage = (err: any, fallback: string): string => {
@@ -58,6 +60,7 @@ export default function AdminEmployees() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false)
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const limit = 10
 
@@ -66,6 +69,17 @@ export default function AdminEmployees() {
   const { data, isLoading } = useQuery({
     queryKey: ['employees', queryParams],
     queryFn: () => employeesApi.getAll(queryParams),
+  })
+
+  const { data: permissionsData } = useQuery({
+    queryKey: ['employee-permissions', selectedEmployee?.id],
+    queryFn: () => employeeOpsApi.getPermissions(selectedEmployee!.id),
+    enabled: permissionsDialogOpen && !!selectedEmployee?.id,
+  })
+
+  const { data: shiftsData } = useQuery({
+    queryKey: ['admin-employee-shifts'],
+    queryFn: () => employeeOpsApi.getShifts({ page: 1, limit: 8 }),
   })
 
   const {
@@ -132,6 +146,16 @@ export default function AdminEmployees() {
     onError: (err: any) => toast.error(getErrorMessage(err, t('adminEmployees.resetError'))),
   })
 
+  const permissionsMutation = useMutation({
+    mutationFn: ({ employeeId, permissions }: { employeeId: string; permissions: EmployeePermission[] }) =>
+      employeeOpsApi.setPermissions(employeeId, permissions),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employee-permissions', selectedEmployee?.id] })
+      toast.success('Permissions updated')
+    },
+    onError: (err: any) => toast.error(getErrorMessage(err, 'Unable to update permissions')),
+  })
+
   const employees = data?.data ?? []
   const pagination = data?.pagination
 
@@ -149,6 +173,19 @@ export default function AdminEmployees() {
     setSelectedEmployee(emp)
     resetResetPassword()
     setResetPasswordDialogOpen(true)
+  }
+
+  const handlePermissions = (emp: Employee) => {
+    setSelectedEmployee(emp)
+    setPermissionsDialogOpen(true)
+  }
+
+  const togglePermission = (permission: EmployeePermission) => {
+    if (!selectedEmployee || !permissionsData?.data) return
+    const next = permissionsData.data.map((item) =>
+      item.permission === permission.permission ? { ...item, enabled: !item.enabled } : item
+    )
+    permissionsMutation.mutate({ employeeId: selectedEmployee.id, permissions: next })
   }
 
   const onSubmit = (formData: EmployeeFormData) => {
@@ -272,12 +309,65 @@ export default function AdminEmployees() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => handlePermissions(emp)}
+                        className="rounded-lg text-[11px] h-8 px-2"
+                        title="Permissions"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#7C4EEE]" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleEdit(emp)}
                         className="rounded-lg text-[11px] h-8 px-2.5"
                       >
                         <Edit2 className="w-3 h-3 mr-1" />
                         <span>{t('common.edit')}</span>
                       </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-xs">
+        <div className="flex items-center justify-between border-b border-border/60 bg-secondary/30 p-4">
+          <div>
+            <h2 className="font-serif text-base font-bold text-foreground">Recent Shifts</h2>
+            <p className="text-[11px] text-muted-foreground">Clock-in, clock-out, and break tracking for staff.</p>
+          </div>
+          <Badge className="bg-[#7C4EEE]/10 text-[#7C4EEE] border-[#7C4EEE]/20 text-[10px]">
+            {shiftsData?.pagination?.total ?? 0} shifts
+          </Badge>
+        </div>
+        {(shiftsData?.data || []).length === 0 ? (
+          <div className="p-8 text-center text-xs text-muted-foreground">No shifts recorded yet.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-secondary/40 border-b border-border/60 text-muted-foreground uppercase text-[10px] tracking-wider font-semibold">
+                <tr>
+                  <th className="p-4">Employee</th>
+                  <th className="p-4">Clock In</th>
+                  <th className="p-4">Clock Out</th>
+                  <th className="p-4">Break</th>
+                  <th className="p-4">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {(shiftsData?.data || []).map((shift) => (
+                  <tr key={shift.id} className="hover:bg-secondary/20">
+                    <td className="p-4 font-semibold text-foreground">{shift.firstName} {shift.lastName}</td>
+                    <td className="p-4 text-muted-foreground">{formatDate(shift.clockInAt)}</td>
+                    <td className="p-4 text-muted-foreground">{shift.clockOutAt ? formatDate(shift.clockOutAt) : '-'}</td>
+                    <td className="p-4 font-mono">{shift.breakMinutes}m</td>
+                    <td className="p-4">
+                      <Badge className={shift.status === 'OPEN' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]' : 'bg-zinc-100 text-zinc-600 text-[10px]'}>
+                        {shift.status}
+                      </Badge>
                     </td>
                   </tr>
                 ))}
@@ -457,6 +547,42 @@ export default function AdminEmployees() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={permissionsDialogOpen} onOpenChange={setPermissionsDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg">
+              Permissions · {selectedEmployee?.firstName}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-2 text-xs">
+            {(permissionsData?.data || []).map((permission) => (
+              <button
+                key={permission.permission}
+                type="button"
+                onClick={() => togglePermission(permission)}
+                disabled={permissionsMutation.isPending}
+                className="flex w-full items-center justify-between rounded-xl border border-border bg-secondary/20 p-3 text-left transition-colors hover:bg-secondary/40"
+              >
+                <span className="font-semibold text-foreground">{permission.permission.replace(/_/g, ' ')}</span>
+                <Badge className={permission.enabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]' : 'bg-rose-50 text-rose-700 border-rose-200 text-[10px]'}>
+                  {permission.enabled ? 'Enabled' : 'Disabled'}
+                </Badge>
+              </button>
+            ))}
+            {permissionsData?.data?.length === 0 && (
+              <p className="py-6 text-center text-muted-foreground">No permissions available.</p>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setPermissionsDialogOpen(false)} className="rounded-xl">
+              {t('common.close')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

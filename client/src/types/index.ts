@@ -20,6 +20,8 @@ export interface Customer {
   lastName: string;
   phone?: string;
   dateOfBirth?: string;
+  loyaltyPoints?: number;
+  loyaltyTier?: string;
   avatar?: string;
   createdAt: string;
   user: User;
@@ -37,6 +39,9 @@ export interface Employee {
   phone?: string;
   position?: string;
   hireDate: string;
+  payrollType: 'HOURLY' | 'MONTHLY';
+  hourlyRate: number;
+  monthlySalary: number;
   isActive: boolean;
   user: User;
 }

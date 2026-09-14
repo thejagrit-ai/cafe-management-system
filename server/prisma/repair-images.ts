@@ -50,6 +50,32 @@ const PRODUCT_IMAGES: Record<string, string> = {
   'geisha reserve v60 pour-over': '/assets/products/americano.jpg',
 };
 
+const PRODUCT_PRICES: Record<string, number> = {
+  'artisan latte art': 180,
+  'classic velvet cappuccino': 160,
+  'madagascar vanilla latte': 190,
+  'belgian dark mocha': 210,
+  '24-hour signature cold brew': 190,
+  'iced salted caramel macchiato': 220,
+  'nitro cold brew float': 230,
+  'single-origin double espresso': 120,
+  'espresso cortado': 140,
+  'espresso romano': 130,
+  'ceremonial matcha latte': 220,
+  'spiced masala chai latte': 120,
+  'earl grey reserve tea': 90,
+  'french butter croissant': 110,
+  'blueberry almond muffin': 120,
+  'double chocolate fudge cookie': 80,
+  'artisan avocado sourdough toast': 220,
+  'smoked turkey & bacon panini': 260,
+  'caprese pesto baguette': 240,
+  'acai berry power smoothie': 180,
+  'tropical mango passion bowl': 190,
+  'seasonal spiced pumpkin latte': 210,
+  'geisha reserve v60 pour-over': 280,
+};
+
 /**
  * Keyword fallback for rows the café renamed or added by hand, so a product
  * called "Vanilla Latte Grande" still gets a picture instead of a grey tile.
@@ -99,6 +125,7 @@ function pickProductImage(name: string): string | null {
 async function main() {
   let categoriesFixed = 0;
   let productsFixed = 0;
+  let pricesFixed = 0;
   const skipped: string[] = [];
 
   for (const category of await prisma.category.findMany()) {
@@ -113,6 +140,12 @@ async function main() {
   }
 
   for (const product of await prisma.product.findMany()) {
+    const price = PRODUCT_PRICES[product.name.trim().toLowerCase()];
+    if (price !== undefined && Number(product.price) !== price) {
+      await prisma.product.update({ where: { id: product.id }, data: { price } });
+      pricesFixed++;
+    }
+
     if (!needsRepair(product.imageUrl)) continue;
     const url = pickProductImage(product.name);
     if (!url) {
@@ -125,6 +158,7 @@ async function main() {
 
   console.log(`✓ ${categoriesFixed} category images repointed at bundled assets`);
   console.log(`✓ ${productsFixed} product images repointed at bundled assets`);
+  console.log(`✓ ${pricesFixed} product prices normalized`);
   if (skipped.length > 0) {
     console.log(`• ${skipped.length} row(s) left untouched — no matching asset:`);
     skipped.forEach((s) => console.log(`    ${s}`));
