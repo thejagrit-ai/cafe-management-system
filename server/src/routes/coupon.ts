@@ -27,9 +27,9 @@ const couponBody = z.object({
 const couponUpdateBody = z.object({ body: couponBody.shape.body.partial(), params: z.object({ id: z.string().min(1) }) });
 const validateBody = z.object({ body: z.object({ code: z.string().min(1), subtotal: z.coerce.number().min(0) }) });
 
-router.get('/', authenticate, authorize('ADMIN'), validate(paginationSchema), couponController.findAll);
+router.get('/', authenticate, validate(paginationSchema), couponController.findAll);
 router.post('/', authenticate, authorize('ADMIN'), validate(couponBody), couponController.create);
 router.put('/:id', authenticate, authorize('ADMIN'), validate(couponUpdateBody), couponController.update);
-router.post('/validate', authenticate, authorize('CUSTOMER'), validate(validateBody), couponController.validate);
+router.post('/validate', authenticate, validate(validateBody), couponController.validate);
 
 export default router;

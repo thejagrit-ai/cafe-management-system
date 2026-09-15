@@ -9,3 +9,4 @@ coverage/
 *.tsbuildinfo
 .vercel
 .claude/
+cafe-clean/

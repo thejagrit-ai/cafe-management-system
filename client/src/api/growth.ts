@@ -169,7 +169,15 @@ export const walletApi = {
   getWallet: () => api.get<Wallet>('/wallet/me'),
   redeemGiftCard: (code: string) => api.post<Wallet>('/wallet/redeem-gift-card', { code }),
   getGiftCards: (params?: PaginationParams & { status?: string }) => api.get<GiftCard[]>('/wallet/gift-cards', params),
-  createGiftCard: (data: { code?: string; initialValue: number; purchaserName?: string; recipientEmail?: string; expiresAt?: string }) =>
+  createGiftCard: (data: {
+    code?: string
+    initialValue: number
+    purchaserName?: string
+    recipientName?: string
+    recipientEmail?: string
+    message?: string
+    expiresAt?: string
+  }) =>
     api.post<GiftCard>('/wallet/gift-cards', data),
 }
 

@@ -12,7 +12,9 @@ const giftCardBody = z.object({
     code: z.string().min(1).max(40).optional(),
     initialValue: z.coerce.number().positive(),
     purchaserName: z.string().max(100).optional(),
+    recipientName: z.string().max(100).optional(),
     recipientEmail: z.string().email().optional(),
+    message: z.string().max(500).optional(),
     expiresAt: z.string().datetime().optional(),
   }),
 });

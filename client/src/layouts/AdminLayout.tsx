@@ -186,42 +186,6 @@ export default function AdminLayout() {
           ))}
         </nav>
       </div>
-
-      {/* Bottom Profile & Actions */}
-      <div className={cn("shrink-0 border-t border-border/80 bg-card transition-all duration-300", collapsed ? "p-2.5 text-center" : "p-4 space-y-3")}>
-        {!collapsed ? (
-          <>
-            <div className="px-2">
-              <p className="text-xs font-semibold text-foreground truncate">
-                {user?.email}
-              </p>
-              <span className="text-[10px] text-[#7C4EEE] uppercase font-bold tracking-wider">
-                {t('admin.roleAdmin')}
-              </span>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full rounded-xl text-xs hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 transition-colors"
-              onClick={() => logout()}
-            >
-              <LogOut className="h-3.5 w-3.5 mr-2" />
-              <span>{t('navigation.logout')}</span>
-            </Button>
-          </>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-11 h-11 p-0 rounded-xl mx-auto flex items-center justify-center hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 transition-colors"
-            onClick={() => logout()}
-            title={t('navigation.logout')}
-          >
-            <LogOut className="h-4 w-4 text-rose-600" />
-          </Button>
-        )}
-      </div>
     </div>
   )
 
@@ -281,6 +245,16 @@ export default function AdminLayout() {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 hover:border-rose-300 dark:hover:border-rose-800 transition-all flex items-center gap-1.5 shadow-2xs"
+              onClick={() => logout()}
+              title={t('navigation.logout')}
+            >
+              <LogOut className="h-3.5 w-3.5 text-rose-600" />
+              <span className="hidden sm:inline">{t('navigation.logout')}</span>
+            </Button>
           </div>
         </header>
 

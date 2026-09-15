@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react'
-import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
@@ -75,11 +75,15 @@ function RouteFallback() {
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, isAuthenticated, isSessionResolved } = useAuth()
+  const location = useLocation()
 
   // Only the routes whose outcome depends on the answer wait for the session
   // probe. Public pages render immediately, even while the API is waking up.
   if (!isSessionResolved) return <LoadingScreen />
-  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (!isAuthenticated) {
+    const redirect = `${location.pathname}${location.search}`
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />
+  }
   if (roles && !roles.includes(user?.role || '')) return <Navigate to="/" replace />
 
   return <>{children}</>
@@ -115,8 +119,13 @@ function CustomerLayout({ children }: { children: React.ReactNode }) {
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isSessionResolved } = useAuth()
+  const [searchParams] = useSearchParams()
+  const redirect = searchParams.get('redirect')
+  const safeRedirect = redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : ''
+
   if (!isSessionResolved) return <LoadingScreen />
   if (isAuthenticated) {
+    if (safeRedirect) return <Navigate to={safeRedirect} replace />
     if (user?.role === 'ADMIN') return <Navigate to="/admin" replace />
     if (user?.role === 'STAFF') return <Navigate to="/staff" replace />
     return <Navigate to="/" replace />
